@@ -3,15 +3,17 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyATs7p7Fiot__5r8dJ8x6plpNaHjeklyMo",
-  authDomain: "additi-frontend.firebaseapp.com",
-  projectId: "additi-frontend",
-  storageBucket: "additi-frontend.firebasestorage.app",
-  messagingSenderId: "551875233106",
-  appId: "1:551875233106:web:8e6099462a140af2a9a68b",
-  measurementId: "G-JSTFKTLYFT"
-};
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!,
+}
+
 
 
 // Initialize Firebase
