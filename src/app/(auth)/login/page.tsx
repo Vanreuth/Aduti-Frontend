@@ -1,8 +1,8 @@
-
 "use client";
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import GoogleButton from "@/components/auth/GoogleButton";
@@ -19,23 +19,42 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Get user role from Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userRole = userData.role;
+
+        // Redirect based on role
+        if (userRole === "admin") {
+          router.replace("/dashboard");
+        } else {
+          router.replace("/");
+        }
+      } else {
+        // Default to home if no user document
+        router.replace("/");
+      }
     } catch (err) {
       setError("Invalid credentials. Please try again.");
       console.error("Login Error:", err);
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         {/* Header Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
@@ -94,6 +113,7 @@ export default function LoginPage() {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 hover:border-gray-400"
                   placeholder="you@example.com"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -122,11 +142,13 @@ export default function LoginPage() {
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 hover:border-gray-400"
                   placeholder="Enter your password"
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={loading}
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,7 +168,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
             >
               {loading ? (
                 <>

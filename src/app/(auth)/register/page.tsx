@@ -49,49 +49,49 @@ export default function RegisterPage() {
   };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+  
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-    setLoading(true);
-    try {
-      // 1. Create Auth User
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+    await updateProfile(user, { displayName: name });
 
-      // 2. Update Display Name
-      await updateProfile(user, { displayName: name });
+    const userRole = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
 
-      // 3. Create Firestore Document with all profile data
-      // TEMPORARY: Check if email contains 'admin' to create admin user
-      const userRole = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      name: name,
+      email: email,
+      phoneNumber: phoneNumber || null,
+      dateOfBirth: dateOfBirth || null,
+      bio: bio || null,
+      role: userRole,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      cart: []
+    });
 
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: name,
-        email: email,
-        phoneNumber: phoneNumber || null,
-        dateOfBirth: dateOfBirth || null,
-        bio: bio || null,
-        role: userRole,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        cart: []
-      });
-
-      router.push("/dashboard");
-    } catch (err) {
-      const error = err as { code?: string; message?: string };
-      if (error.code === 'auth/email-already-in-use') {
-        setError("Email already in use.");
-      } else if (error.code === 'auth/weak-password') {
-        setError("Password is too weak.");
-      } else {
-        setError(error.message || "An error occurred during registration.");
-      }
-    } finally {
-      setLoading(false);
+    // Use router.replace instead of router.push
+    if (userRole === "admin") {
+      router.replace("/dashboard");
+    } else {
+      router.replace("/");
     }
-  };
+  } catch (err) {
+    const error = err as { code?: string; message?: string };
+    if (error.code === 'auth/email-already-in-use') {
+      setError("Email already in use.");
+    } else if (error.code === 'auth/weak-password') {
+      setError("Password is too weak.");
+    } else {
+      setError(error.message || "An error occurred during registration.");
+    }
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 px-4 py-8">
