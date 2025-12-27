@@ -9,18 +9,24 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const { user, loading } = useAuth();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
     const checkUserAndRedirect = async () => {
+      // Wait for auth to finish loading
       if (loading) {
         setChecking(true);
         return;
       }
 
+      // If no user, allow auth pages to render
       if (!user) {
         setChecking(false);
         return;
       }
+
+      // User is logged in, need to redirect
+      setShouldRedirect(true);
 
       try {
         // Fetch user profile from Firestore to get role
@@ -33,19 +39,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           // Redirect based on role
           if (userRole === "admin") {
-            router.push("/dashboard");
+            router.replace("/dashboard");
           } else {
             // Customer or any other role redirects to home
-            router.push("/");
+            router.replace("/");
           }
         } else {
           // If no user profile exists, default to home
-          router.push("/");
+          router.replace("/");
         }
       } catch (error) {
         console.error("Error checking user role:", error);
         // On error, redirect to home as fallback
-        router.push("/");
+        router.replace("/");
       }
     };
 
@@ -61,7 +67,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
             <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-400 rounded-full animate-ping mx-auto opacity-20"></div>
           </div>
-          <p className="text-gray-700 font-medium mt-6">Checking authentication...</p>
+          <p className="text-gray-700 font-medium mt-6">
+            {shouldRedirect ? "Redirecting..." : "Checking authentication..."}
+          </p>
         </div>
       </div>
     );
