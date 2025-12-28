@@ -39,8 +39,8 @@ import { Separator } from "@/components/ui/separator";
 const NAV_LINKS = [
   { name: "Home", href: "/" },
   { name: "Shop", href: "/shop" },
-  { name: "Categories", href: "/categories" },
-  { name: "Deals", href: "/deals" },
+  { name: "Features", href: "/feature" },
+  { name: "Blog", href: "/blog" },
   { name: "About", href: "/about" },
   { name: "Contact", href: "/contact" },
 ];

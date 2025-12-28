@@ -60,18 +60,18 @@ export default function TopBar() {
   const currentCurr = CURRENCIES[currency];
 
   return (
-    <div className="bg-white border-b border-gray-100">
+    <div className="bg-gray-900  border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-9">
           {/* Left Section - Contact Info */}
-          <div className="hidden lg:flex items-center gap-6 text-xs text-gray-600">
+          <div className="hidden lg:flex items-center gap-6 text-xs text-white">
             <div className="flex items-center gap-2">
               <Phone className="h-3 w-3 text-gray-400" />
               <span>Free shipping over $100</span>
             </div>
             <a 
               href="mailto:support@mystore.com" 
-              className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 hover:text-blue-900 transition-colors"
             >
               <Mail className="h-3 w-3 text-gray-400" />
               <span>support@mystore.com</span>
@@ -83,7 +83,7 @@ export default function TopBar() {
             {/* Track Order */}
             <Link 
               href="/track-order" 
-              className="hidden sm:block text-gray-600 hover:text-gray-900 transition-colors"
+              className="hidden sm:block text-white hover:text-blue-900 transition-colors"
             >
               Track Order
             </Link>
@@ -91,7 +91,7 @@ export default function TopBar() {
             {/* Help Center */}
             <Link 
               href="/help" 
-              className="hidden sm:block text-gray-600 hover:text-gray-900 transition-colors"
+              className="hidden sm:block text-white hover:text-blue-900 transition-colors"
             >
               Help
             </Link>
@@ -102,7 +102,7 @@ export default function TopBar() {
             {/* Account Link */}
             <Link 
               href={user ? "/account" : "/login"}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className="text-white hover:text-blue-900 transition-colors"
             >
               {user ? `Hi, ${user.displayName?.split(' ')[0] || 'User'}` : 'Sign In'}
             </Link>
@@ -113,7 +113,7 @@ export default function TopBar() {
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-all py-1 px-2 rounded hover:bg-gray-50 group"
+              className="flex items-center gap-1.5 text-white hover:text-blue-900 transition-all py-1 px-2 rounded hover:bg-gray-50 group"
               title={`Switch to ${language === "EN" ? "Khmer" : "English"}`}
             >
               <Image
@@ -131,7 +131,7 @@ export default function TopBar() {
             {/* Currency Toggle */}
             <button
               onClick={toggleCurrency}
-              className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-all py-1 px-2 rounded hover:bg-gray-50 group"
+              className="flex items-center gap-1.5 text-white hover:text-blue-900 transition-all py-1 px-2 rounded hover:bg-gray-50 group"
               title={`Switch to ${currency === "USD" ? "Khmer Riel" : "US Dollar"}`}
             >
               <Image
