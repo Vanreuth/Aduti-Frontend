@@ -1,281 +1,283 @@
 "use client";
-import { useState } from "react";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+
+// UI Components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+
+// Icons
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import GoogleButton from "@/components/auth/GoogleButton";
 
-export default function RegisterPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [bio, setBio] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
+export default function SignupPage() {
   const router = useRouter();
+  
+  // Form State
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
+    confirmPassword: "",
+  });
+  
+  // UX State
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
-  const validateStep1 = () => {
-    if (!name.trim()) {
-      setError("Please enter your full name.");
-      return false;
-    }
-    if (!email.trim()) {
-      setError("Please enter your email.");
-      return false;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return false;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return false;
-    }
-    return true;
+  // Handle Input Changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+    if (error) setError("");
   };
 
-  const handleNextStep = (e: React.FormEvent) => {
+  const getStrengthColor = (score: number) => {
+    if (score < 40) return "bg-red-500";
+    if (score < 80) return "bg-yellow-500";
+    return "bg-emerald-500";
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (validateStep1()) {
-      setStep(2);
+
+    if (formData.password !== formData.confirmPassword) {
+      return setError("Passwords do not match.");
+    }
+    if (passwordStrength < 40) {
+        return setError("Password is too weak. Please include numbers or symbols.");
+    }
+
+    setLoading(true);
+
+    try {
+      // 2. Create Auth User
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      const user = userCredential.user;
+
+      // 3. Update Auth Profile (Display Name)
+      await updateProfile(user, {
+        displayName: formData.name,
+      });
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name: formData.name,
+        email: formData.email,
+        role: "user",
+        createdAt: serverTimestamp(),
+        provider: "email",
+      });
+
+      // 5. Redirect
+      router.replace("/dashboard"); 
+
+    } catch (err: any) {
+      console.error("Signup Error:", err);
+      if (err.code === "auth/email-already-in-use") {
+        setError("This email is already in use.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else {
+        setError("Failed to create account. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-  
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    await updateProfile(user, { displayName: name });
-
-    const userRole = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
-
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      name: name,
-      email: email,
-      phoneNumber: phoneNumber || null,
-      dateOfBirth: dateOfBirth || null,
-      bio: bio || null,
-      role: userRole,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      cart: []
-    });
-
-    // Use router.replace instead of router.push
-    if (userRole === "admin") {
-      router.replace("/dashboard");
-    } else {
-      router.replace("/");
-    }
-  } catch (err) {
-    const error = err as { code?: string; message?: string };
-    if (error.code === 'auth/email-already-in-use') {
-      setError("Email already in use.");
-    } else if (error.code === 'auth/weak-password') {
-      setError("Password is too weak.");
-    } else {
-      setError(error.message || "An error occurred during registration.");
-    }
-    setLoading(false);
-  }
-};
-
   return (
-    <div className="flex justify-center items-center min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 px-4 py-8">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-100">
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Create Account</h2>
-          <p className="text-center text-gray-500 text-sm">Join us and start your journey</p>
-        </div>
+    <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-6 md:p-10">
+      <div className="w-full max-w-sm sm:max-w-md">
+        <Card className="shadow-xl border-muted">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+            <CardDescription>
+              Enter your information below to get started
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="grid gap-4">
+            {/* Error Feedback */}
+            {error && (
+              <Alert variant="destructive" className="animate-in slide-in-from-top-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-        {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-              step === 1 ? 'bg-blue-600 text-white' : 'bg-green-500 text-white'
-            }`}>
-              {step === 1 ? '1' : '✓'}
-            </div>
-            <div className={`w-16 h-1 ${step === 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-              step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
-            }`}>
-              2
-            </div>
-          </div>
-        </div>
+            {/* Social Login */}
+            <GoogleButton /> 
 
-        {step === 1 && (
-          <>
-            <div className="mb-6">
-              <GoogleButton isRegister={true} />
-            </div>
-
-            <div className="relative mb-6">
+            <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+                <span className="w-full border-t" />
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-gray-500">Or register with email</span>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
               </div>
             </div>
-          </>
-        )}
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-r">
-            <p className="text-red-700 text-sm flex items-center">
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
-              </svg>
-              {error}
-            </p>
-          </div>
-        )}
+            <form onSubmit={handleSignup} className="grid gap-4">
+              {/* Full Name */}
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
 
-        {/* Step 1: Account Information */}
-        {step === 1 && (
-          <form onSubmit={handleNextStep} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
-              <input
-                type="text"
-                value={name}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-                placeholder="John Doe"
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
-              <input
-                type="email"
-                value={email}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-                placeholder="john@example.com"
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Password *</label>
-              <input
-                type="password"
-                value={password}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-                placeholder="••••••••"
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password *</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-                placeholder="••••••••"
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
-            >
-              Next Step →
-            </button>
-          </form>
-        )}
+              {/* Email */}
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="number">Phnone Number</Label>
+                <Input
+                  id="number"
+                  type="number"
+                  placeholder=""
+                  required
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
 
-        {/* Step 2: Profile Information */}
-        {step === 2 && (
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="text-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Complete Your Profile</h3>
-              <p className="text-sm text-gray-500">Tell us more about yourself (optional)</p>
-            </div>
+              {/* Password */}
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Password Strength Meter */}
+                {formData.password && (
+                    <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Strength</span>
+                            <span className={passwordStrength > 80 ? "text-emerald-600 font-medium" : ""}>
+                                {passwordStrength < 40 ? "Weak" : passwordStrength < 80 ? "Medium" : "Strong"}
+                            </span>
+                        </div>
+                    </div>
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-                placeholder="+1 (555) 123-4567"
-                onChange={(e) => setPhoneNumber(e.target.value)}
-              />
-            </div>
+              {/* Confirm Password */}
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className={
+                    formData.confirmPassword && formData.password !== formData.confirmPassword
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
+                />
+                {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                   <div className="flex items-center gap-1.5 text-xs text-emerald-600 animate-in fade-in">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Passwords match
+                   </div>
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>
-              <input
-                type="date"
-                value={dateOfBirth}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none"
-                onChange={(e) => setDateOfBirth(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
-              <textarea
-                value={bio}
-                rows={4}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition outline-none resize-none"
-                placeholder="Tell us a bit about yourself..."
-                onChange={(e) => setBio(e.target.value)}
-                maxLength={500}
-              />
-              <p className="text-xs text-gray-500 mt-1 text-right">{bio.length}/500 characters</p>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg transition-all duration-200"
-              >
-                ← Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-blue-400 disabled:to-purple-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
-              >
+              <Button type="submit" className="w-full mt-2" disabled={loading}>
                 {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating Account...
-                  </span>
-                ) : "Create Account"}
-              </button>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+          
+          <CardFooter className="flex flex-col gap-4 border-t pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary font-medium hover:underline">
+                Sign in
+              </Link>
             </div>
-          </form>
-        )}
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Already have an account? <Link href="/login" className="text-blue-600 font-semibold hover:underline hover:text-blue-700 transition">Log in</Link>
-        </p>
+            <p className="text-center text-xs text-muted-foreground px-4">
+                By clicking continue, you agree to our{" "}
+                <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and{" "}
+                <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
