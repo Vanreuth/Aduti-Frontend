@@ -51,7 +51,6 @@ const NAV_LINKS = [
 const ACCOUNT_MENU = [
   { label: "Profile", href: "/account", icon: User },
   { label: "Orders", href: "/order", icon: Package },
-  { label: "Address", href: "/address", icon: Settings },
 ];
 
 const POPULAR_SEARCHES = [
