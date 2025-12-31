@@ -10,17 +10,17 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           {/* Brand Section */}
           <div className="lg:col-span-1">
-          <Link href="/" className="flex items-center group">
-                <div className="relative h-12 w-32 transition-transform group-hover:scale-105">
-                  <Image
-                    src="/logo.png"
-                    alt="MyStore Logo"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-              </Link>
+            <Link href="/" className="flex items-center group">
+              <div className="relative h-24 w-24 rounded-full  transition-transform group-hover:scale-105">
+                <Image
+                  src="/Shop_Logo.png"
+                  alt="MyStore Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Premium fashion clothing for modern style enthusiasts. Discover
               quality and elegance in every piece.

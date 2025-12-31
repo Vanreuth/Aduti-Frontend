@@ -282,9 +282,9 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/" className="flex items-center group shrink-0">
-              <div className="relative h-10 w-28 transition-transform duration-300 group-hover:scale-105">
+              <div className="relative h-24 w-24 rounded-full transition-transform duration-300 group-hover:scale-105">
                 <Image
-                  src="/logo.png"
+                  src="/Shop_Logo.png"
                   alt="Aduti Logo"
                   fill
                   className="object-contain"

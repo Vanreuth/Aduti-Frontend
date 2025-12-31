@@ -12,7 +12,7 @@ import { Shield, LogIn, ArrowLeft, Lock } from "lucide-react";
 
 export default function UnauthorizedPage() {
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-25 to-orange-25">
+		<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-amber-25 to-orange-25">
 			<Card className="w-full max-w-md text-center border-amber-100 shadow-lg">
 				<CardHeader>
 					<div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-amber-50 border-2 border-amber-100">

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Check, CreditCard, Truck, MapPin, ChevronRight, ShieldCheck } from "lucide-react";
+import {  CreditCard, Truck, MapPin, ChevronRight, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -240,10 +239,10 @@ export default function OrderPage() {
                 
                 <CardContent className="pt-6 grid gap-6">
                   {/* Cart Items List */}
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                  <div className="space-y-4 max-h-75 overflow-y-auto pr-2">
                     {cart.map((item) => (
                       <div key={item.id} className="flex gap-4">
-                        <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 border">
+                        <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 border">
                            {/* Placeholder for Next/Image */}
                            <span className="text-xs text-gray-400">IMG</span>
                         </div>
