@@ -162,7 +162,7 @@ export default function MessagesPage() {
 						</div>
 					</CardHeader>
 					<CardContent>
-						<div className="h-[400px] flex flex-col">
+						<div className="h-100 flex flex-col">
 							{/* Messages */}
 							<div className="flex-1 space-y-4 overflow-y-auto p-4">
 								{messages.map((message) => (
