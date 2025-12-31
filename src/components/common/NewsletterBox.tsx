@@ -8,7 +8,7 @@ const NewsletterBox = () => {
   };
 
   return (
-    <div className="text-center">
+    <div className="text-center w-full py-12 bg-gray-100">
       <p className="text-2xl font-medium text-gray-800">
         Subscribe now & Get 20% Discount
       </p>
@@ -21,9 +21,9 @@ const NewsletterBox = () => {
         className="w-full sm:w-1/2 flex items-center gap-3 mx-auto my-6 border pl-3"
       >
         <input
-          className="w-full outline-none py-2"
+          className="w-full outline-none py-2 text-gray-600 placeholder-gray-400 text-xs sm:text-base bg-transparent"
           type="email"
-          placeholder="Enter Email"
+          placeholder="Enter your Email"
           required
         />
         <button
