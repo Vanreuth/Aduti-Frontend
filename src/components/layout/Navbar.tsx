@@ -103,11 +103,11 @@ export default function Navbar() {
         "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=100&h=100&fit=crop",
     },
     {
-      id: 1,
+      id: 2,
       name: "Premium Leather Watch",
       price: 199.99,
       image:
-        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=100&h=100&fit=crop",
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop",
     },
   ];
 
@@ -232,7 +232,7 @@ export default function Navbar() {
                   <Separator className="my-4" />
 
                   <Link
-                    href="/cart"
+                    href="/order"
                     className="flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-all"
                   >
                     <span className="flex items-center gap-3">
@@ -418,7 +418,7 @@ export default function Navbar() {
                           variant="outline"
                           onClick={() => {
                             setIsWishlistOpen(false);
-                            router.push("/account/wishlist");
+                            router.push("wishlist");
                           }}
                         >
                           View Full Wishlist
@@ -541,7 +541,7 @@ export default function Navbar() {
                             className="bg-zinc-900 hover:bg-zinc-800"
                             onClick={() => {
                               setIsCartOpen(false);
-                              router.push("/checkout");
+                              router.push("/order");
                             }}
                           >
                             Checkout
