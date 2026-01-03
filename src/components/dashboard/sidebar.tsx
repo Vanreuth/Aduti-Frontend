@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Settings,
@@ -18,10 +18,10 @@ import {
   LogIn,
   AlertCircle,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
+  ChevronDown,
+  Package,
 } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -32,18 +32,14 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuAction,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarProvider,
   SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -55,29 +51,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 
-const sidebarGroups = [
+type SidebarChild = { title: string; href: string };
+type SidebarItem = {
+  title: string;
+  href: string;
+  icon: any;
+  badge?: string | null;
+  badgeVariant?: "secondary" | "destructive" | null;
+  children?: SidebarChild[];
+};
+
+const sidebarGroups: { title: string; items: SidebarItem[] }[] = [
   {
     title: "General",
     items: [
-      {
-        title: "Dashboard",
-        href: "/dashboard",
-        icon: LayoutDashboard,
-        badge: null,
-      },
-      {
-        title: "Analytics",
-        href: "/dashboard/analytics",
-        icon: BarChart3,
-        badge: null,
-        badgeVariant: null,
-      },
-      {
-        title: "Settings",
-        href: "/dashboard/settings",
-        icon: Settings,
-        badge: null,
-      },
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+      { title: "Settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
   {
@@ -88,39 +78,33 @@ const sidebarGroups = [
         href: "/dashboard/users",
         icon: Users,
         badge: "12",
-        badgeVariant: "secondary" as const,
+        badgeVariant: "secondary",
       },
       {
-        title: "Projects",
-        href: "/dashboard/projects",
-        icon: FolderKanban,
-        badge: null,
+        title: "Products",
+        href: "/dashboard/products",
+        icon: Package,
+        children: [
+          { title: "All Products", href: "/dashboard/products" },
+          { title: "Add Product", href: "/dashboard/products/add-product" },
+          { title: "Edit Product", href: "/dashboard/products/edit-product" },
+          {
+            title: "Delete Product",
+            href: "/dashboard/products/delete-product",
+          },
+        ],
       },
-      {
-        title: "Documents",
-        href: "/dashboard/documents",
-        icon: FileText,
-        badge: null,
-      },
+      { title: "Projects", href: "/dashboard/projects", icon: FolderKanban },
+      { title: "Documents", href: "/dashboard/documents", icon: FileText },
       {
         title: "Calendar",
         href: "/dashboard/calendar",
         icon: Calendar,
         badge: "3",
-        badgeVariant: "secondary" as const,
+        badgeVariant: "secondary",
       },
-      {
-        title: "Auth Pages",
-        href: "/dashboard/auth",
-        icon: LogIn,
-        badge: null,
-      },
-      {
-        title: "Error Pages",
-        href: "/dashboard/errors",
-        icon: AlertCircle,
-        badge: null,
-      },
+      { title: "Auth Pages", href: "/dashboard/auth", icon: LogIn },
+      { title: "Error Pages", href: "/dashboard/errors", icon: AlertCircle },
     ],
   },
   {
@@ -131,27 +115,17 @@ const sidebarGroups = [
         href: "/dashboard/messages",
         icon: MessageSquare,
         badge: "5",
-        badgeVariant: "secondary" as const,
+        badgeVariant: "secondary",
       },
-      {
-        title: "Database",
-        href: "/dashboard/database",
-        icon: Database,
-        badge: null,
-      },
+      { title: "Database", href: "/dashboard/database", icon: Database },
       {
         title: "Security",
         href: "/dashboard/security",
         icon: Shield,
         badge: "!",
-        badgeVariant: "destructive" as const,
+        badgeVariant: "destructive",
       },
-      {
-        title: "Help",
-        href: "/dashboard/help",
-        icon: HelpCircle,
-        badge: null,
-      },
+      { title: "Help", href: "/dashboard/help", icon: HelpCircle },
     ],
   },
 ];
@@ -162,12 +136,30 @@ interface SidebarProps {
 
 export function AppSidebar({ onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   const handleLinkClick = () => {
-    if (onMobileClose) {
-      onMobileClose();
-    }
+    if (onMobileClose) onMobileClose();
   };
+
+  const toggleParent = (href: string) => {
+    setOpenMap((prev) => ({ ...prev, [href]: !prev[href] }));
+  };
+
+  // Auto-open dropdown if you are inside that section
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    sidebarGroups.forEach((g) => {
+      g.items.forEach((item) => {
+        if (item.children?.length) {
+          const inBranch =
+            pathname === item.href || pathname.startsWith(item.href + "/");
+          if (inBranch) next[item.href] = true;
+        }
+      });
+    });
+    setOpenMap((prev) => ({ ...prev, ...next }));
+  }, [pathname]);
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -196,31 +188,81 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
             <SidebarGroupContent className="mt-1 space-y-0.5">
               <SidebarMenu className="space-y-2">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.href;
                   const Icon = item.icon;
+                  const hasChildren = !!item.children?.length;
+
+                  const parentActive =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
+
+                  const isOpen = !!openMap[item.href];
 
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        tooltip={item.title}
-                        onClick={handleLinkClick}
-                      >
-                        <Link href={item.href}>
+                      {/* ✅ Parent */}
+                      {hasChildren ? (
+                        <SidebarMenuButton
+                          tooltip={item.title}
+                          isActive={parentActive}
+                          onClick={() => toggleParent(item.href)}
+                        >
                           <Icon />
                           <span>{item.title}</span>
-                          {item.badge && (
-                            <Badge
-                              variant={item.badgeVariant || "secondary"}
-                              className="ml-auto"
-                            >
-                              {item.badge}
-                            </Badge>
-                          )}
-                        </Link>
-                      </SidebarMenuButton>
-                      {item.badge && (
+                          <ChevronDown
+                            className={`ml-auto size-4 transition-transform ${
+                              isOpen ? "rotate-180" : "rotate-0"
+                            }`}
+                          />
+                        </SidebarMenuButton>
+                      ) : (
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={item.title}
+                          isActive={pathname === item.href}
+                          onClick={handleLinkClick}
+                        >
+                          <Link href={item.href}>
+                            <Icon />
+                            <span>{item.title}</span>
+                            {item.badge && (
+                              <Badge
+                                variant={item.badgeVariant || "secondary"}
+                                className="ml-auto"
+                              >
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
+                      )}
+
+                      {/* ✅ Children dropdown */}
+                      {hasChildren && (
+                        <div
+                          className={`overflow-hidden transition-all duration-200 ${
+                            isOpen
+                              ? "max-h-96 opacity-100"
+                              : "max-h-0 opacity-0"
+                          }`}
+                        >
+                          <SidebarMenuSub>
+                            {item.children!.map((child) => (
+                              <SidebarMenuSubItem key={child.href}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={pathname === child.href}
+                                  onClick={handleLinkClick}
+                                >
+                                  <Link href={child.href}>{child.title}</Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </div>
+                      )}
+
+                      {/* keep right-side action badge only for non-children items */}
+                      {item.badge && !hasChildren && (
                         <SidebarMenuAction>
                           <Badge
                             variant={item.badgeVariant || "secondary"}
@@ -244,10 +286,7 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
+                <SidebarMenuButton size="lg">
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src="/avatar.png" alt="User" />
                     <AvatarFallback className="rounded-lg">JD</AvatarFallback>
@@ -258,9 +297,10 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
                       john.doe@example.com
                     </span>
                   </div>
-                  <ChevronLeft className="ml-auto size-4" />
+                  <ChevronDown className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                 side="bottom"
@@ -281,6 +321,7 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
                     </div>
                   </div>
                 </DropdownMenuLabel>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <div className="flex size-2 rounded-full bg-green-500 mr-2" />
@@ -294,6 +335,7 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
                   <div className="flex size-2 rounded-full bg-gray-500 mr-2" />
                   Offline
                 </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -304,6 +346,7 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   );

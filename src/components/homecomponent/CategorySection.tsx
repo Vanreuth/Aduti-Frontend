@@ -1,7 +1,10 @@
 "use client";
+
 import React from "react";
-import { ChevronRight } from "lucide-react";
 import Image from "next/image";
+import { ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { staggerContainer, fadeUpItem } from "@/lib/utils";
 
 const CategorySection = () => {
   const categories = [
@@ -19,6 +22,7 @@ const CategorySection = () => {
       subtitle: "Spring 2018",
       image:
         "https://images.unsplash.com/photo-1552337480-48918be048b9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y29vbCUyMG1lbnxlbnwwfHwwfHx8MA%3D%3D",
+      cta: "SHOP NOW",
     },
     {
       id: 3,
@@ -26,167 +30,142 @@ const CategorySection = () => {
       subtitle: "New Trend",
       image:
         "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop",
+      cta: "EXPLORE",
     },
   ];
 
-  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
-
   return (
-    <div className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {categories.map((category, index) => (
-            <div
-              key={category.id}
-              className="group relative h-80 rounded-xl overflow-hidden cursor-pointer shadow-lg"
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              style={{
-                animation: `slideInUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) ${
-                  index * 0.15
-                }s both`,
-              }}
-            >
-              {/* Background Image with Zoom - Framer Motion Style */}
-              <div
-                className="absolute inset-0 w-full h-full"
-                style={{
-                  transform:
-                    hoveredIndex === index ? "scale(1.15)" : "scale(1)",
-                  transformOrigin: "center",
-                  transition:
-                    "transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                }}
-              >
-                <Image
-                  src={category.image}
-                  alt={category.title}
-                  fill
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              {/* Overlay - Framer Motion Style Fade */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  opacity: hoveredIndex === index ? 0.3 : 0.4,
-                  transition: "opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                  background: "rgb(0, 0, 0)",
-                }}
-              />
-
-              {/* Border Glow - Framer Motion Style */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "0.75rem",
-                  border: "2px solid",
-                  borderColor:
-                    hoveredIndex === index
-                      ? "rgba(255, 255, 255, 0.3)"
-                      : "rgba(255, 255, 255, 0)",
-                  transition: "border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                  pointerEvents: "none",
-                }}
-              />
-
-              {/* Content Container */}
-              <div className="relative h-full flex flex-col justify-between p-8">
-                {/* Title & Subtitle - Framer Motion Style */}
-                <div
-                  style={{
-                    transform:
-                      hoveredIndex === index
-                        ? "translateY(-12px)"
-                        : "translateY(0)",
-                    transition:
-                      "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    <div className="container-app">
+      <div className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Entrance animation (global) */}
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.25 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            {categories.map((category) => (
+              // This wrapper runs hidden/show entrance (fadeUpItem)
+              <motion.div key={category.id} variants={fadeUpItem}>
+                {/* This inner card handles rest/hover */}
+                <motion.div
+                  className="group relative h-80 rounded-xl overflow-hidden cursor-pointer shadow-lg"
+                  initial="rest"
+                  whileHover="hover"
+                  animate="rest" // ✅ keep, but only if we also set variants on THIS element
+                  variants={{
+                    rest: {},
+                    hover: {},
                   }}
                 >
-                  <h3
-                    style={{
-                      fontSize: "2.25rem",
-                      fontWeight: "bold",
-                      marginBottom: "0.5rem",
-                      color: "white",
-                      transition: "color 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                  {/* Background image */}
+                  <motion.div
+                    className="absolute inset-0"
+                    variants={{
+                      rest: { scale: 1 },
+                      hover: { scale: 1.12 },
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 120,
+                      damping: 18,
+                      mass: 1.1,
                     }}
                   >
-                    {category.title}
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: "1.125rem",
-                      color: "rgba(255, 255, 255, 0.9)",
-                      transition: "color 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                    }}
-                  >
-                    {category.subtitle}
-                  </p>
-                </div>
+                    <Image
+                      src={category.image}
+                      alt={category.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      priority={category.id === 1}
+                    />
+                  </motion.div>
 
-                {/* CTA Button - Framer Motion Style */}
-                <button
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    fontWeight: "bold",
-                    fontSize: "0.875rem",
-                    letterSpacing: "0.05em",
-                    color: "white",
-                    opacity: hoveredIndex === index ? 1 : 0,
-                    transform:
-                      hoveredIndex === index
-                        ? "translateY(0)"
-                        : "translateY(24px)",
-                    transition: "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                  className="hover:opacity-80"
-                >
-                  {category.cta || "EXPLORE"}
-                  <ChevronRight
-                    className="w-4 h-4"
-                    style={{
-                      transform:
-                        hoveredIndex === index
-                          ? "translateX(6px)"
-                          : "translateX(0)",
-                      transition:
-                        "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  {/* Dark overlay */}
+                  <motion.div
+                    className="absolute inset-0 bg-black"
+                    variants={{
+                      rest: { opacity: 0.4 },
+                      hover: { opacity: 0.3 },
                     }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                   />
-                </button>
-              </div>
-            </div>
-          ))}
+
+                  {/* Border glow */}
+                  <motion.div
+                    className="absolute inset-0 rounded-xl pointer-events-none"
+                    variants={{
+                      rest: {
+                        boxShadow: "inset 0 0 0 2px rgba(255,255,255,0)",
+                      },
+                      hover: {
+                        boxShadow:
+                          "inset 0 0 0 2px rgba(255,255,255,0.30), 0 18px 40px rgba(0,0,0,0.25)",
+                      },
+                    }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  />
+
+                  {/* Content */}
+                  <div className="relative h-full flex flex-col justify-between p-8">
+                    {/* Title/Sub */}
+                    <motion.div
+                      variants={{
+                        rest: { y: 0 },
+                        hover: { y: -10 },
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 160,
+                        damping: 20,
+                        mass: 1,
+                      }}
+                    >
+                      <h3 className="text-4xl font-bold mb-2 text-white">
+                        {category.title}
+                      </h3>
+                      <p className="text-lg text-white/90">
+                        {category.subtitle}
+                      </p>
+                    </motion.div>
+
+                    {/* CTA */}
+                    <motion.button
+                      type="button"
+                      className="flex items-center gap-2 font-bold text-sm tracking-wider text-white bg-transparent border-none cursor-pointer hover:opacity-80"
+                      variants={{
+                        rest: { opacity: 0, y: 18 },
+                        hover: { opacity: 1, y: 0 },
+                      }}
+                      transition={{
+                        duration: 0.35,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                    >
+                      {category.cta || "EXPLORE"}
+                      <motion.span
+                        variants={{
+                          rest: { x: 0 },
+                          hover: { x: 6 },
+                        }}
+                        transition={{
+                          duration: 0.25,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </motion.span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes slideInUp {
-          from {
-            opacity: 0;
-            transform: translateY(40px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .group {
-            height: 300px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
