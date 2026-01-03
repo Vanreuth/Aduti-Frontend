@@ -1,114 +1,17 @@
 "use client";
-import { useState } from "react";
-import { Heart, ShoppingCart, Eye, Star } from "lucide-react";
-import Image from "next/image";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Product } from "@/types/product";
+import { getAllProducts } from "@/lib/firebase/products";
+import { useCart } from "@/context/CartContext";
+import { toast } from "sonner";
+import { useWishlist } from "@/context/WishlistContext";
+import { ProductCard } from "../shop/ProductCard";
 
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  rating: number;
-  reviews: number;
-  isNew?: boolean;
-  isSale?: boolean;
-}
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Esprit Ruffle Shirt",
-    price: 16.64,
-    originalPrice: 24.99,
-    image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=500&fit=crop",
-    category: "women",
-    rating: 4.5,
-    reviews: 128,
-    isSale: true,
-  },
-  {
-    id: 2,
-    name: "Herschel Supply Bag",
-    price: 35.31,
-    image:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=500&fit=crop",
-    category: "bag",
-    rating: 4.8,
-    reviews: 89,
-    isNew: true,
-  },
-  {
-    id: 3,
-    name: "Only Check Trouser",
-    price: 25.5,
-    image:
-      "https://images.unsplash.com/photo-1534030347209-467a5b0ad3e6?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8bWVufGVufDB8fDB8fHww",
-    category: "men",
-    rating: 4.3,
-    reviews: 56,
-  },
-  {
-    id: 4,
-    name: "Classic Trench Coat",
-    price: 75.0,
-    originalPrice: 99.0,
-    image:
-      "https://images.unsplash.com/photo-1560087637-bf797bc7796a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8d29tZW58ZW58MHx8MHx8fDA%3D",
-    category: "women",
-    rating: 4.7,
-    reviews: 234,
-    isSale: true,
-  },
-  {
-    id: 5,
-    name: "Urban Sneakers",
-    price: 64.5,
-    image:
-      "https://images.unsplash.com/photo-1494291793534-6f053ee9c31a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8VXJiYW4lMjBTbmVha2Vyc3xlbnwwfHwwfHx8MA%3D%3D",
-    category: "shoes",
-    rating: 4.9,
-    reviews: 312,
-    isNew: true,
-  },
-  {
-    id: 6,
-    name: "Designer Watch",
-    price: 199.99,
-    image:
-      "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400&h=500&fit=crop",
-    category: "watches",
-    rating: 4.6,
-    reviews: 178,
-  },
-  {
-    id: 7,
-    name: "Leather Handbag",
-    price: 120.0,
-    originalPrice: 150.0,
-    image:
-      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=500&fit=crop",
-    category: "bag",
-    rating: 4.4,
-    reviews: 95,
-    isSale: true,
-  },
-  {
-    id: 8,
-    name: "Smart Watch Pro",
-    price: 249.99,
-    image:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=500&fit=crop",
-    category: "watches",
-    rating: 4.8,
-    reviews: 267,
-    isNew: true,
-  },
-];
+import { motion, AnimatePresence } from "framer-motion";
+import { staggerContainer, fadeUpItem } from "@/lib/utils";
 
 const tabs = [
   { id: "all", label: "All Products" },
@@ -117,206 +20,251 @@ const tabs = [
   { id: "bag", label: "Bags" },
   { id: "shoes", label: "Shoes" },
   { id: "watches", label: "Watches" },
-];
+] as const;
 
-const ProductOverview = () => {
-  const [activeTab, setActiveTab] = useState("all");
-  const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
-  const [wishlist, setWishlist] = useState<Set<number>>(new Set());
+export default function ProductOverview() {
+  const [activeTab, setActiveTab] =
+    useState<(typeof tabs)[number]["id"]>("all");
 
-  const filteredProducts =
-    activeTab === "all"
-      ? products
-      : products.filter((p) => p.category === activeTab);
+  // Firebase state~
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const toggleWishlist = (id: number) => {
-    const newWishlist = new Set(wishlist);
-    if (newWishlist.has(id)) {
-      newWishlist.delete(id);
-    } else {
-      newWishlist.add(id);
+  // Contexts (single source of truth)
+  const { addItem } = useCart();
+  const { items: wishlistItems, add, remove } = useWishlist();
+
+  // Fetch products
+  useEffect(() => {
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedProducts = await getAllProducts();
+      setProducts(fetchedProducts);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      setError("Failed to load products. Please try again later.");
+    } finally {
+      setLoading(false);
     }
-    setWishlist(newWishlist);
   };
 
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-3.5 h-3.5 ${
-              star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : star - 0.5 <= rating
-                ? "fill-yellow-400/50 text-yellow-400"
-                : "fill-zinc-200 text-zinc-200"
-            }`}
-          />
-        ))}
-      </div>
+  // Filter products by tab
+  const filteredProducts = useMemo(() => {
+    if (activeTab === "all") return products;
+    return products.filter((p) => String(p.category) === String(activeTab));
+  }, [activeTab, products]);
+
+  // Add to cart (same pattern as your ProductCard)
+  const handleAddToCart = (product: Product) => {
+    addItem({
+      id: String(product.id),
+      name: product.name,
+      price: product.price,
+      image: product.image,
+    });
+
+    toast.success("Added to cart 🛒", {
+      description: "You can review it in your cart anytime.",
+    });
+  };
+
+  const toggleWishlist = (product: Product) => {
+    const exists = wishlistItems.some(
+      (i) => String(i.id) === String(product.id)
     );
+
+    if (exists) {
+      remove(String(product.id));
+      toast("Removed from wishlist 💔", { description: "No longer saved." });
+    } else {
+      add({
+        id: String(product.id),
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      });
+      toast("Added to wishlist ❤️", { description: "Saved for later." });
+    }
   };
 
-  return (
-    <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
-            Product Overview
-          </h2>
-          <p className="text-zinc-600 max-w-2xl mx-auto">
-            Discover our curated collection of premium products designed for
-            style and comfort
-          </p>
-        </div>
-
-        {/* Category Tabs */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex flex-wrap justify-center gap-2 p-1.5 bg-zinc-100 rounded-full">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? "bg-zinc-900 text-white shadow-lg"
-                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="group relative bg-white rounded-2xl overflow-hidden border border-zinc-100 hover:border-zinc-200 hover:shadow-xl transition-all duration-500"
-              onMouseEnter={() => setHoveredProduct(product.id)}
-              onMouseLeave={() => setHoveredProduct(null)}
-            >
-              {/* Product Image */}
-              <div className="relative aspect-3/4 overflow-hidden bg-zinc-100">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className={`object-cover transition-transform duration-700 ${
-                    hoveredProduct === product.id ? "scale-110" : "scale-100"
-                  }`}
-                />
-
-                {/* Badges */}
-                <div className="absolute top-3 left-3 flex flex-col gap-2">
-                  {product.isNew && (
-                    <span className="px-3 py-1 text-xs font-bold bg-emerald-500 text-white rounded-full">
-                      NEW
-                    </span>
-                  )}
-                  {product.isSale && (
-                    <span className="px-3 py-1 text-xs font-bold bg-red-500 text-white rounded-full">
-                      SALE
-                    </span>
-                  )}
-                </div>
-
-                {/* Wishlist Button */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toggleWishlist(product.id);
-                  }}
-                  className={`absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center transition-all duration-300 ${
-                    hoveredProduct === product.id
-                      ? "opacity-100 translate-y-0"
-                      : "opacity-0 -translate-y-2"
-                  } hover:scale-110`}
-                >
-                  <Heart
-                    className={`w-5 h-5 transition-colors ${
-                      wishlist.has(product.id)
-                        ? "fill-red-500 text-red-500"
-                        : "text-zinc-400 hover:text-red-500"
-                    }`}
-                  />
-                </button>
-
-                {/* Quick Actions */}
-                <div
-                  className={`absolute bottom-4 left-4 right-4 flex gap-2 transition-all duration-500 ${
-                    hoveredProduct === product.id
-                      ? "opacity-100 translate-y-0"
-                      : "opacity-0 translate-y-4"
-                  }`}
-                >
-                  <Button className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full text-sm h-10">
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Add to Cart
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-white border-zinc-200 hover:bg-zinc-100"
-                    asChild
-                  >
-                    <Link href={`/product/${product.id}`}>
-                      <Eye className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Product Info */}
-              <div className="p-4">
-                <Link href={`/product/${product.id}`}>
-                  <h3 className="font-semibold text-zinc-900 mb-2 hover:text-zinc-600 transition-colors line-clamp-1">
-                    {product.name}
-                  </h3>
-                </Link>
-
-                {/* Rating */}
-                <div className="flex items-center gap-2 mb-3">
-                  {renderStars(product.rating)}
-                  <span className="text-xs text-zinc-500">
-                    ({product.reviews})
-                  </span>
-                </div>
-
-                {/* Price */}
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-zinc-900">
-                    ${product.price.toFixed(2)}
-                  </span>
-                  {product.originalPrice && (
-                    <span className="text-sm text-zinc-400 line-through">
-                      ${product.originalPrice.toFixed(2)}
-                    </span>
-                  )}
-                </div>
+  // Loading
+  if (loading) {
+    return (
+      <div className="container-app">
+        <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
+                Product Overview
+              </h2>
+              <p className="text-zinc-600 max-w-2xl mx-auto">
+                Discover our curated collection of premium products
+              </p>
+            </div>
+            <div className="flex justify-center items-center py-20">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900 mx-auto mb-4" />
+                <p className="text-zinc-600">Loading products...</p>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* View All Button */}
-        <div className="text-center mt-12">
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="rounded-full px-8 border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white"
-          >
-            <Link href="/shop">View All Products</Link>
-          </Button>
-        </div>
+          </div>
+        </section>
       </div>
-    </section>
-  );
-};
+    );
+  }
 
-export default ProductOverview;
+  // Error
+  if (error) {
+    return (
+      <div className="container-app">
+        <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button onClick={fetchProducts}>Try Again</Button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // Empty
+  if (products.length === 0) {
+    return (
+      <div className="container-app">
+        <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
+                Product Overview
+              </h2>
+              <p className="text-zinc-600 max-w-2xl mx-auto mb-8">
+                No products available yet. Check back soon!
+              </p>
+              <Button onClick={fetchProducts}>Refresh</Button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-app">
+      <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Entrance for whole section */}
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {/* Header */}
+            <motion.div variants={fadeUpItem} className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
+                Product Overview
+              </h2>
+              <p className="text-zinc-600 max-w-2xl mx-auto">
+                Discover our curated collection of premium products designed for
+                style and comfort
+              </p>
+            </motion.div>
+
+            {/* Category Tabs */}
+            <motion.div
+              variants={fadeUpItem}
+              className="flex justify-center mb-10"
+            >
+              <div className="relative inline-flex flex-wrap justify-center gap-2 p-1.5 bg-zinc-100 rounded-full">
+                {tabs.map((tab) => {
+                  const active = activeTab === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={[
+                        "relative px-5 py-2.5 text-sm font-medium rounded-full transition-colors",
+                        active
+                          ? "text-white"
+                          : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200",
+                      ].join(" ")}
+                    >
+                      {/* Animated pill */}
+                      {active && (
+                        <motion.span
+                          layoutId="product-tabs-pill"
+                          className="absolute inset-0 rounded-full bg-zinc-900 shadow-lg"
+                          transition={{
+                            type: "spring",
+                            stiffness: 240,
+                            damping: 24,
+                            mass: 1.1,
+                          }}
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Products Grid */}
+            {filteredProducts.length === 0 ? (
+              <motion.div variants={fadeUpItem} className="text-center py-12">
+                <p className="text-zinc-600">
+                  No products found in this category.
+                </p>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <motion.div
+                    variants={staggerContainer}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                  >
+                    {filteredProducts.map((product) => (
+                      <motion.div key={product.id} variants={fadeUpItem}>
+                        <ProductCard product={product} />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+
+            {/* View All Button */}
+            <motion.div variants={fadeUpItem} className="text-center mt-10">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-8 border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white"
+              >
+                <Link href="/shop">View All Products</Link>
+              </Button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+}

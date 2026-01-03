@@ -1,18 +1,18 @@
-import TopBar from '@/components/layout/Tobar'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import TopBar from "@/components/layout/Tobar";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 export default function ShopLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen ">
       <TopBar />
-      <Navbar />
-      <main className="flex-1">{children}</main>
+      <Header />
+      <main>{children}</main>
       <Footer />
     </div>
-  )
+  );
 }
