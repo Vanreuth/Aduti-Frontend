@@ -47,7 +47,7 @@ export function MobileMenuSheet({
 
   return (
     <SheetContent side="left" className="w-60 p-0">
-      <SheetHeader className="bg-gradient-to-br from-zinc-900 to-zinc-800">
+      <SheetHeader className="bg-linear-to-br from-zinc-900 to-zinc-800">
         <SheetTitle className="text-2xl font-bold text-white text-left">
           Additi
         </SheetTitle>
