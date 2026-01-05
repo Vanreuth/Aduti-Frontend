@@ -324,15 +324,15 @@ export default function Navbar() {
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {/* Search Button */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsSearchOpen(true)}
-                className="rounded-full hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900"
+                className="rounded-full bg-blue-100 hover:bg-blue-200 transition-all"
               >
-                <Search className="h-5 w-5" />
+                <Search className="h-5 w-5" color="#3b82f6" />
               </Button>
 
               {/* Wishlist - Hidden on mobile */}
@@ -341,98 +341,145 @@ export default function Navbar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative rounded-full hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 hidden sm:flex"
+                    className="relative rounded-full bg-pink-100 hover:bg-pink-200 hidden sm:flex transition-all"
                   >
-                    <Heart className="h-5 w-5" />
-                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    <Heart className="h-5 w-5" color="#ec4899" />
+                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
                       {wishlistItems.length}
                     </span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="w-full sm:w-96 p-0 flex flex-col"
+                  className="w-full sm:w-105 p-0 flex flex-col border-l-0 bg-linear-to-b from-zinc-50 to-white"
                 >
-                  <SheetHeader className="p-6 border-b">
-                    <SheetTitle className="flex items-center gap-2 text-xl">
-                      <Heart className="h-5 w-5 text-red-500" />
-                      Wishlist ({wishlistItems.length})
-                    </SheetTitle>
-                  </SheetHeader>
+                  {/* Modern Gradient Header */}
+                  <div className="relative overflow-hidden">
+                    <div className="absolute inset-0 bg-linear-to-br from-pink-500 via-rose-500 to-red-500" />
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.08%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-30" />
+                    <SheetHeader className="relative p-6 pb-10">
+                      <SheetTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <div className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-sm shadow-lg shadow-pink-900/20">
+                          <Heart className="h-6 w-6 text-white" fill="white" />
+                        </div>
+                        My Wishlist
+                      </SheetTitle>
+                      <p className="text-white/80 text-sm mt-2 flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">
+                          {wishlistItems.length}
+                        </span>
+                        {wishlistItems.length === 1 ? "item" : "items"} saved
+                      </p>
+                    </SheetHeader>
+                    {/* Curved bottom edge */}
+                    <div className="absolute -bottom-1 left-0 right-0 h-8 bg-linear-to-b from-zinc-50 to-white rounded-t-4xl" />
+                  </div>
 
                   {wishlistItems.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                      <Heart className="h-16 w-16 text-zinc-200 mb-4" />
-                      <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                      <div className="relative">
+                        <div className="w-28 h-28 rounded-3xl bg-linear-to-br from-pink-100 via-rose-50 to-pink-100 flex items-center justify-center mb-6 shadow-xl shadow-pink-200/50">
+                          <Heart className="h-14 w-14 text-pink-400" />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center">
+                          <span className="text-pink-600 text-lg">✨</span>
+                        </div>
+                      </div>
+                      <h3 className="text-xl font-bold text-zinc-900 mb-2">
                         Your wishlist is empty
                       </h3>
-                      <p className="text-sm text-zinc-500 mb-6">
-                        Save items you love to your wishlist
+                      <p className="text-zinc-500 mb-8 max-w-xs leading-relaxed">
+                        Start adding items you love and they&apos;ll appear here
                       </p>
                       <Button
                         onClick={() => {
                           setIsWishlistOpen(false);
                           router.push("/shop");
                         }}
+                        className="bg-linear-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-8 py-6 rounded-2xl font-semibold shadow-xl shadow-pink-500/30 transition-all hover:shadow-2xl hover:shadow-pink-500/40 hover:-translate-y-1 active:scale-95"
                       >
-                        Browse Products
+                        <Heart className="h-5 w-5 mr-2" />
+                        Discover Products
                       </Button>
                     </div>
                   ) : (
                     <>
-                      <div className="flex-1 overflow-auto p-4 space-y-4">
-                        {wishlistItems.map((item) => (
+                      <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
+                        {wishlistItems.map((item, index) => (
                           <div
                             key={item.id}
-                            className="flex gap-4 p-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                            className="group relative bg-linear-to-br from-pink-50 via-rose-50 to-fuchsia-50 rounded-3xl overflow-hidden border-2 border-pink-100/80 hover:border-pink-200 shadow-lg shadow-pink-100/50 hover:shadow-xl hover:shadow-pink-200/60 transition-all duration-300"
+                            style={{ animationDelay: `${index * 50}ms` }}
                           >
-                            <div className="h-20 w-20 rounded-lg overflow-hidden bg-white shrink-0">
-                              <Image
-                                src={item.image}
-                                alt={item.name}
-                                width={100}
-                                height={100}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-zinc-900 truncate">
-                                {item.name}
-                              </h4>
-                              <p className="text-lg font-semibold text-zinc-900 mt-1">
-                                ${item.price.toFixed(2)}
-                              </p>
-                              <div className="flex gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 text-xs"
-                                >
-                                  <ShoppingCart className="h-3 w-3 mr-1" />
-                                  Add to Cart
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                            {/* Top Section - Image and Quick Info */}
+                            <div className="flex p-3 gap-3">
+                              {/* Product Image - Larger and More Prominent */}
+                              <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-linear-to-br from-pink-100/50 to-rose-100/50 shrink-0 ring-2 ring-pink-200/50">
+                                <Image
+                                  src={item.image}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                {/* Gradient Overlay */}
+                                <div className="absolute inset-0 bg-linear-to-t from-pink-900/40 via-pink-900/10 to-transparent" />
+                                {/* Price Tag on Image */}
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <div className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1.5 shadow-lg border border-pink-100">
+                                    <span className="text-lg font-bold bg-linear-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                                      ${item.price.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* Heart Badge */}
+                                <div className="absolute top-2 left-2 p-2 rounded-xl bg-linear-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-500/40">
+                                  <Heart
+                                    className="h-3.5 w-3.5 text-white"
+                                    fill="white"
+                                  />
+                                </div>
                               </div>
+
+                              {/* Product Details */}
+                              <div className="flex-1 min-w-0 py-1">
+                                <h4 className="font-bold text-zinc-800 text-base leading-tight line-clamp-2 group-hover:text-pink-600 transition-colors">
+                                  {item.name}
+                                </h4>
+
+                                {/* Saved label */}
+                                <div className="mt-2 flex items-center gap-1.5">
+                                  <span className="text-xs px-2.5 py-1 rounded-full bg-pink-200/60 text-pink-700 font-semibold border border-pink-200">
+                                    ❤️ Saved
+                                  </span>
+                                </div>
+
+                                {/* Delete Button - Top Right */}
+                                <button className="absolute top-3 right-3 p-2 rounded-xl bg-white/80 hover:bg-red-100 text-pink-400 hover:text-red-500 transition-all active:scale-90 shadow-sm border border-pink-100">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Bottom Section - Add to Cart Button */}
+                            <div className="px-3 pb-3">
+                              <Button className="w-full h-11 bg-linear-to-r from-zinc-800 to-zinc-900 hover:from-zinc-700 hover:to-zinc-800 text-white rounded-2xl font-semibold text-sm shadow-lg shadow-zinc-900/30 hover:shadow-xl hover:shadow-zinc-900/40 transition-all active:scale-[0.98] border border-zinc-700">
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Add to Cart
+                              </Button>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <div className="p-4 border-t">
+                      <div className="p-4 pt-2 bg-white border-t border-zinc-100">
                         <Button
-                          className="w-full"
-                          variant="outline"
+                          className="w-full h-14 bg-linear-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-2xl font-semibold text-base shadow-xl shadow-pink-500/25 transition-all hover:shadow-2xl hover:shadow-pink-500/35 hover:-translate-y-0.5 active:scale-[0.98]"
                           onClick={() => {
                             setIsWishlistOpen(false);
                             router.push("/account/wishlist");
                           }}
                         >
                           View Full Wishlist
+                          <ChevronRight className="h-5 w-5 ml-2" />
                         </Button>
                       </div>
                     </>
@@ -446,116 +493,202 @@ export default function Navbar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative rounded-full hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900"
+                    className="relative rounded-full bg-emerald-100 hover:bg-emerald-200 transition-all"
                   >
-                    <ShoppingCart className="h-5 w-5" />
-                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-zinc-900 text-white text-[10px] font-bold">
+                    <ShoppingCart className="h-5 w-5" color="#10b981" />
+                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold">
                       {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                     </span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="w-full sm:w-96 p-0 flex flex-col"
+                  className="w-full sm:w-105 p-0 flex flex-col border-l-0 bg-linear-to-b from-zinc-50 to-white"
                 >
-                  <SheetHeader className="p-6 border-b">
-                    <SheetTitle className="flex items-center gap-2 text-xl">
-                      <ShoppingCart className="h-5 w-5" />
-                      Shopping Cart ({cartItems.length})
-                    </SheetTitle>
-                  </SheetHeader>
+                  {/* Modern Gradient Header */}
+                  <div className="relative overflow-hidden">
+                    <div className="absolute inset-0 bg-linear-to-br from-emerald-500 via-teal-500 to-cyan-500" />
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.08%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-30" />
+                    <SheetHeader className="relative p-6 pb-10">
+                      <SheetTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <div className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-sm shadow-lg shadow-emerald-900/20">
+                          <ShoppingCart className="h-6 w-6 text-white" />
+                        </div>
+                        Shopping Cart
+                      </SheetTitle>
+                      <p className="text-white/80 text-sm mt-2 flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">
+                          {cartItems.reduce(
+                            (sum, item) => sum + item.quantity,
+                            0
+                          )}
+                        </span>
+                        {cartItems.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0
+                        ) === 1
+                          ? "item"
+                          : "items"}{" "}
+                        in cart
+                      </p>
+                    </SheetHeader>
+                    {/* Curved bottom edge */}
+                    <div className="absolute -bottom-1 left-0 right-0 h-8 bg-linear-to-b from-zinc-50 to-white rounded-t-4xl" />
+                  </div>
 
                   {cartItems.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                      <ShoppingCart className="h-16 w-16 text-zinc-200 mb-4" />
-                      <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                      <div className="relative">
+                        <div className="w-28 h-28 rounded-3xl bg-linear-to-br from-emerald-100 via-teal-50 to-emerald-100 flex items-center justify-center mb-6 shadow-xl shadow-emerald-200/50">
+                          <ShoppingCart className="h-14 w-14 text-emerald-400" />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center">
+                          <span className="text-emerald-600 text-lg">🛒</span>
+                        </div>
+                      </div>
+                      <h3 className="text-xl font-bold text-zinc-900 mb-2">
                         Your cart is empty
                       </h3>
-                      <p className="text-sm text-zinc-500 mb-6">
-                        Add some products to get started
+                      <p className="text-zinc-500 mb-8 max-w-xs leading-relaxed">
+                        Looks like you haven&apos;t added any items to your cart
+                        yet
                       </p>
                       <Button
                         onClick={() => {
                           setIsCartOpen(false);
                           router.push("/shop");
                         }}
+                        className="bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-6 rounded-2xl font-semibold shadow-xl shadow-emerald-500/30 transition-all hover:shadow-2xl hover:shadow-emerald-500/40 hover:-translate-y-1 active:scale-95"
                       >
+                        <ShoppingCart className="h-5 w-5 mr-2" />
                         Start Shopping
                       </Button>
                     </div>
                   ) : (
                     <>
-                      <div className="flex-1 overflow-auto p-4 space-y-4">
-                        {cartItems.map((item) => (
+                      <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
+                        {cartItems.map((item, index) => (
                           <div
                             key={item.id}
-                            className="flex gap-4 p-3 rounded-xl bg-zinc-50"
+                            className="group relative bg-linear-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-3xl overflow-hidden border-2 border-emerald-100/80 hover:border-emerald-200 shadow-lg shadow-emerald-100/50 hover:shadow-xl hover:shadow-emerald-200/60 transition-all duration-300"
+                            style={{ animationDelay: `${index * 50}ms` }}
                           >
-                            <div className="h-20 w-20 rounded-lg overflow-hidden bg-white shrink-0">
-                              <Image
-                                src={item.image}
-                                alt={item.name}
-                                width={100}
-                                height={100}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-zinc-900 truncate">
-                                {item.name}
-                              </h4>
-                              <p className="text-lg font-semibold text-zinc-900 mt-1">
-                                ${item.price.toFixed(2)}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <div className="flex items-center border rounded-lg">
-                                  <button className="p-1.5 hover:bg-zinc-100 transition-colors">
-                                    <Minus className="h-3 w-3" />
-                                  </button>
-                                  <span className="px-3 text-sm font-medium">
-                                    {item.quantity}
+                            {/* Top Section - Image and Quick Info */}
+                            <div className="flex p-3 gap-3">
+                              {/* Product Image - Larger and More Prominent */}
+                              <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-linear-to-br from-emerald-100/50 to-teal-100/50 shrink-0 ring-2 ring-emerald-200/50">
+                                <Image
+                                  src={item.image}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                {/* Gradient Overlay */}
+                                <div className="absolute inset-0 bg-linear-to-t from-emerald-900/40 via-emerald-900/10 to-transparent" />
+                                {/* Price Tag on Image */}
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <div className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1.5 shadow-lg border border-emerald-100">
+                                    <span className="text-lg font-bold bg-linear-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                                      ${item.price.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Product Details */}
+                              <div className="flex-1 min-w-0 py-1">
+                                <h4 className="font-bold text-zinc-800 text-base leading-tight line-clamp-2 group-hover:text-emerald-600 transition-colors">
+                                  {item.name}
+                                </h4>
+
+                                {/* Item Total */}
+                                <div className="mt-2 flex items-center gap-2">
+                                  <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-200/60 text-emerald-700 font-semibold border border-emerald-200">
+                                    💰 $
+                                    {(item.price * item.quantity).toFixed(2)}
                                   </span>
-                                  <button className="p-1.5 hover:bg-zinc-100 transition-colors">
-                                    <Plus className="h-3 w-3" />
+                                </div>
+
+                                {/* Delete Button - Top Right */}
+                                <button className="absolute top-3 right-3 p-2 rounded-xl bg-white/80 hover:bg-red-100 text-emerald-400 hover:text-red-500 transition-all active:scale-90 shadow-sm border border-emerald-100">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Bottom Section - Quantity Controls */}
+                            <div className="px-3 pb-3">
+                              <div className="flex items-center justify-between bg-white/60 backdrop-blur-sm rounded-2xl p-2 border border-emerald-100">
+                                <span className="text-xs font-semibold text-emerald-700 pl-2">
+                                  Quantity
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-white hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 shadow-sm hover:shadow transition-all active:scale-90 border border-emerald-200 hover:border-emerald-300">
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+                                  <div className="w-12 h-9 flex items-center justify-center bg-linear-to-br from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-emerald-500/40 border border-emerald-400">
+                                    <span className="text-sm font-bold text-white">
+                                      {item.quantity}
+                                    </span>
+                                  </div>
+                                  <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-white hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 shadow-sm hover:shadow transition-all active:scale-90 border border-emerald-200 hover:border-emerald-300">
+                                    <Plus className="h-4 w-4" />
                                   </button>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 ml-auto"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </div>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <div className="p-4 border-t space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-zinc-600">Subtotal</span>
-                          <span className="text-xl font-bold text-zinc-900">
-                            ${cartTotal.toFixed(2)}
-                          </span>
+
+                      {/* Cart Footer with Summary */}
+                      <div className="bg-white border-t border-zinc-100 rounded-t-3xl -mt-2 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                        {/* Summary Section */}
+                        <div className="p-5 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-zinc-500">Subtotal</span>
+                            <span className="font-semibold text-zinc-700">
+                              ${cartTotal.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-zinc-500">Shipping</span>
+                            <span className="font-semibold text-emerald-600 flex items-center gap-1">
+                              <span className="text-xs">🎉</span> Free
+                            </span>
+                          </div>
+                          <div className="h-px bg-linear-to-r from-transparent via-zinc-200 to-transparent my-2" />
+                          <div className="flex justify-between items-center pt-1">
+                            <span className="text-zinc-900 font-bold text-lg">
+                              Total
+                            </span>
+                            <span className="text-3xl font-bold text-emerald-600">
+                              ${cartTotal.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+
+                        {/* Action Buttons */}
+                        <div className="p-5 pt-0 space-y-3">
                           <Button
-                            variant="outline"
-                            onClick={() => {
-                              setIsCartOpen(false);
-                              router.push("/cart");
-                            }}
-                          >
-                            View Cart
-                          </Button>
-                          <Button
-                            className="bg-zinc-900 hover:bg-zinc-800"
+                            className="w-full h-14 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl font-semibold text-base shadow-xl shadow-emerald-500/25 transition-all hover:shadow-2xl hover:shadow-emerald-500/35 hover:-translate-y-0.5 active:scale-[0.98]"
                             onClick={() => {
                               setIsCartOpen(false);
                               router.push("/checkout");
                             }}
                           >
-                            Checkout
+                            Proceed to Checkout
+                            <ChevronRight className="h-5 w-5 ml-2" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full h-11 text-zinc-500 hover:text-zinc-900 rounded-xl font-medium hover:bg-zinc-100 transition-all"
+                            onClick={() => {
+                              setIsCartOpen(false);
+                              router.push("/cart");
+                            }}
+                          >
+                            View Full Cart
                           </Button>
                         </div>
                       </div>

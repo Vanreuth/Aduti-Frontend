@@ -164,7 +164,7 @@ export default function Page() {
                 key={p.id}
                 className="overflow-hidden rounded-xl border bg-white shadow-sm"
               >
-                <div className="relative aspect-[4/3] bg-gray-100">
+                <div className="relative aspect-4/3 bg-gray-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.image}
