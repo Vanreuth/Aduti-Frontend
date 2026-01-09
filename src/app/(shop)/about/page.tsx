@@ -11,7 +11,7 @@ const About = () => {
       </div>
       <div className=" my-10 flex flex-col md:flex-row gap-16">
         <Image
-          className="w-full md:max-w-[450px]"
+          className="w-full md:max-w-112.5"
           src="/about_img.png"
           alt="About image"
           width={450}
@@ -26,7 +26,7 @@ const About = () => {
             comfort of their homes.
           </p>
           <p>
-            Since our inception, we've worked tirelessly to curate a diverse
+            Since our inception, we have worked tirelessly to curate a diverse
             selection of high-quality products that cater to every taste and
             preference. From fashion and beauty to electronics and home
             essentials, we offer an extensive collection sourced from trusted
@@ -36,7 +36,7 @@ const About = () => {
 
           <p>
             Our mission at Forever is to empower customers with choice,
-            convenience, and confidence. We're dedicated to providing a seamless
+            convenience, and confidence. We are dedicated to providing a seamless
             shopping experience that exceeds expectations, from browsing and
             ordering to delivery and beyond.
           </p>

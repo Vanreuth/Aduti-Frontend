@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo, Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Filter, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,21 @@ import { staggerContainer, fadeUpItem } from "@/lib/utils";
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const searchQuery = searchParams.get("search") || "";
   const filterParam = searchParams.get("filter") || "";
+
+  // Function to clear search from URL
+  const clearSearch = () => {
+    setLocalQuery("");
+    // Remove search param from URL if it exists
+    if (searchQuery) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("search");
+      const newUrl = params.toString() ? `/shop?${params.toString()}` : "/shop";
+      router.push(newUrl);
+    }
+  };
 
   // Firebase state
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -167,6 +180,7 @@ function SearchContent() {
           resultsCount={filteredProducts.length}
           onQueryChange={setLocalQuery}
           onSortChange={setSortBy}
+          onClear={clearSearch}
         />
       </motion.div>
 

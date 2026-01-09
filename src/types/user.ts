@@ -6,9 +6,10 @@ export interface UserProfile {
   address?: string;
   phone?: string;
   photoURL?: string;
-  role: "customer" | "admin";
+  role: "customer" | "admin" | "editor";
   createdAt: Date;
-  bio:string;
+  status?: "Active" | "Inactive";
+  bio: string;
 }
 export interface UserSettings {
   emailNotifications: boolean;
