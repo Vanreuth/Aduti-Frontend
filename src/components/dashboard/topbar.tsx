@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Bell, Search, Command, SunIcon, MoonIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,57 @@ import { AppSwitcher } from "@/components/shared/app-switcher";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { ThemeSwitcher } from "./theme-switcher";
+import { useAuth } from "@/context/AuthContext";
+import { getUserProfile } from "@/lib/firebase/user";
+import { UserProfile } from "@/types/user";
 
 export function Topbar() {
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      if (!user) {
+        if (isMounted) {
+          setProfile(null);
+        }
+        return;
+      }
+
+      try {
+        const data = await getUserProfile(user.uid);
+        if (isMounted) {
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error("Error loading user profile:", error);
+        if (isMounted) {
+          setProfile(null);
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const displayName =
+    profile?.displayName || user?.displayName || "Guest User";
+  const email = profile?.email || user?.email || "guest@example.com";
+  const avatarUrl = profile?.photoURL || user?.photoURL || "";
+  const initials =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2) || "GU";
+
   return (
     <div className="flex items-center justify-between gap-4">
       {/* Search Bar */}
@@ -124,9 +174,9 @@ export function Topbar() {
               className="relative h-9 w-9 rounded-full hover:bg-muted/50 transition-colors"
             >
               <Avatar className="h-8 w-8 ring-2 ring-background hover:ring-primary/20 transition-all">
-                <AvatarImage src="/avatar.png" alt="User" />
+                <AvatarImage src={avatarUrl} alt={displayName} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                  JD
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -135,15 +185,17 @@ export function Topbar() {
             <DropdownMenuLabel className="font-normal p-3">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src="/avatar.png" alt="User" />
+                  <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    JD
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">John Doe</p>
+                  <p className="text-sm font-medium leading-none">
+                    {displayName}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    john.doe@example.com
+                    {email}
                   </p>
                 </div>
               </div>
@@ -159,7 +211,10 @@ export function Topbar() {
               <span className="flex items-center gap-2">💳 Billing</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-2" />
-            <DropdownMenuItem className="p-3 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive rounded-md transition-colors">
+            <DropdownMenuItem
+              className="p-3 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive rounded-md transition-colors"
+              onClick={() => void signOut()}
+            >
               <span className="flex items-center gap-2">🚪 Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
