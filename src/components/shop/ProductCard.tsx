@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Heart, ShoppingCart, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "./StarRating";
@@ -55,20 +54,36 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <>
-      <div className="relative bg-white rounded-2xl overflow-hidden border border-zinc-100 hover:border-zinc-200 hover:shadow-lg transition">
-        {/* Image */}
-        <div className="relative aspect-3/4 bg-zinc-100">
+      <div className="relative bg-white rounded-2xl overflow-hidden border border-zinc-100 hover:border-zinc-200 hover:shadow-lg transition group">
+        {/* Clickable Image Area - Opens Quick View */}
+        <div
+          className="relative aspect-3/4 bg-zinc-100 cursor-pointer"
+          onClick={() => setQuickOpen(true)}
+        >
           <Image
             src={product.image}
             alt={product.name}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
 
-          {/* Wishlist */}
+          {/* Overlay on hover */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+
+          {/* Quick View hint on hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <span className="bg-white/95 backdrop-blur-sm text-zinc-900 px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+              Quick View
+            </span>
+          </div>
+
+          {/* Wishlist - Stop propagation to prevent quick view */}
           <button
-            className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/90 hover:bg-white transition"
-            onClick={handleToggleWishlist}
+            className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/90 hover:bg-white transition hover:scale-110"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleWishlist();
+            }}
             aria-label="Wishlist"
           >
             <Heart
@@ -82,11 +97,13 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="p-4 space-y-3">
-          <Link href={`/products/${product.id}`}>
-            <h3 className="font-semibold text-zinc-900 hover:text-zinc-600 line-clamp-1">
-              {product.name}
-            </h3>
-          </Link>
+          {/* Product name - also opens quick view */}
+          <h3
+            className="font-semibold text-zinc-900 hover:text-zinc-600 line-clamp-1 cursor-pointer"
+            onClick={() => setQuickOpen(true)}
+          >
+            {product.name}
+          </h3>
 
           <div className="flex items-center gap-2">
             <StarRating rating={product.rating} />

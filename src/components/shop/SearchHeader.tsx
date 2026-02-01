@@ -14,6 +14,7 @@ interface SearchHeaderProps {
   resultsCount: number;
   onQueryChange: (query: string) => void;
   onSortChange: (sort: string) => void;
+  onClear?: () => void;
 }
 
 export function SearchHeader({
@@ -22,7 +23,16 @@ export function SearchHeader({
   resultsCount,
   onQueryChange,
   onSortChange,
+  onClear,
 }: SearchHeaderProps) {
+  const handleClear = () => {
+    if (onClear) {
+      onClear();
+    } else {
+      onQueryChange("");
+    }
+  };
+
   return (
     <div className="bg-white border-b">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -39,7 +49,7 @@ export function SearchHeader({
             />
             {query && (
               <button
-                onClick={() => onQueryChange("")}
+                onClick={handleClear}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
               >
                 <X className="h-5 w-5" />

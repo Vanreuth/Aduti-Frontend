@@ -1,17 +1,30 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, Search } from "lucide-react";
+import { LogOut, Menu, Search, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
-import React, { startTransition } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import React, { startTransition, useEffect, useState } from "react";
 
 import { MobileMenuSheet } from "./navbar/MobileMenuSheet";
 import { WishlistSheet } from "./navbar/WishlistSheet";
 import { CartSheet } from "./navbar/CartSheet";
 import { SearchDialog } from "./navbar/SearchDialog";
+import { useAuth } from "@/context/AuthContext";
+import { getUserProfile } from "@/lib/firebase/user";
+import { UserProfile } from "@/types/user";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
@@ -25,6 +38,39 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      if (!user) {
+        if (isMounted) {
+          setProfile(null);
+        }
+        return;
+      }
+
+      try {
+        const data = await getUserProfile(user.uid);
+        if (isMounted) {
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error("Error loading user profile:", error);
+        if (isMounted) {
+          setProfile(null);
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const go = (href: string) => {
     if (href === pathname) return;
@@ -50,6 +96,22 @@ export default function Navbar() {
       });
     }, 50);
   };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/login");
+  };
+
+  const displayName = profile?.displayName || user?.displayName || "Guest";
+  const email = profile?.email || user?.email || "";
+  const avatarUrl = profile?.photoURL || user?.photoURL || "";
+  const initials =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2) || "G";
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur">
@@ -135,6 +197,64 @@ export default function Navbar() {
             />
             <WishlistSheet />
             <CartSheet />
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                      <AvatarFallback className="bg-zinc-900 text-white text-xs font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 p-2" align="end">
+                  <DropdownMenuLabel className="font-normal p-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={avatarUrl} alt={displayName} />
+                        <AvatarFallback className="bg-zinc-900 text-white">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-zinc-900 truncate">
+                          {displayName}
+                        </p>
+                        <p className="text-xs text-zinc-500 truncate">
+                          {email}
+                        </p>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/account" className="cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Profile
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={handleLogout}
+                  >
+                    <span className="flex items-center gap-2">
+                      <LogOut className="h-4 w-4" />
+                      Log out
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild variant="ghost" size="icon" className="rounded-full">
+                <Link href="/login" aria-label="Sign in">
+                  <User className="h-5 w-5" />
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

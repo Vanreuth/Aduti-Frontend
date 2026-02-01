@@ -140,7 +140,7 @@ export default function HeroSlider() {
                   aria-roledescription="slide"
                   aria-label={`${idx + 1} of ${slides.length}`}
                 >
-                  <div className="relative w-full min-h-[520px] md:min-h-[640px] lg:min-h-[720px]">
+                  <div className="relative w-full min-h-130 md:min-h-160 lg:min-h-180">
                     {/* Image (slight zoom only for active slide) */}
                     <motion.div
                       className="absolute inset-0"
@@ -163,7 +163,7 @@ export default function HeroSlider() {
                     </motion.div>
 
                     {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
+                    <div className="absolute inset-0 bg-linear-to-b from-black/45 via-black/35 to-black/55" />
 
                     {/* Content */}
                     <div className="absolute inset-0 flex items-center justify-center">

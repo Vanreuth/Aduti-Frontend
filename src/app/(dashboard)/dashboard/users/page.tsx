@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
   Plus,
@@ -9,7 +9,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  User,
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,157 +44,119 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  createUserProfile,
+  deleteUserProfile,
+  listUsers,
+  updateUserProfile,
+} from "@/lib/firebase/user";
+import { UserProfile } from "@/types/user";
 
-// Type definitions
-interface UserData {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  phone: string;
-  joinDate: string;
-}
+type UserRow = UserProfile & { status: "Active" | "Inactive" };
 
 interface FormData {
   name: string;
   email: string;
-  role: string;
-  status: string;
+  role: UserProfile["role"];
+  status: "Active" | "Inactive";
   phone: string;
   joinDate: string;
 }
 
-const initialUsers: UserData[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "john@example.com",
-    role: "Admin",
-    status: "Active",
-    phone: "+1234567890",
-    joinDate: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    email: "jane@example.com",
-    role: "User",
-    status: "Active",
-    phone: "+1234567891",
-    joinDate: "2024-02-20",
-  },
-  {
-    id: 3,
-    name: "Bob Johnson",
-    email: "bob@example.com",
-    role: "Editor",
-    status: "Inactive",
-    phone: "+1234567892",
-    joinDate: "2024-03-10",
-  },
-  {
-    id: 4,
-    name: "Alice Brown",
-    email: "alice@example.com",
-    role: "User",
-    status: "Active",
-    phone: "+1234567893",
-    joinDate: "2024-01-25",
-  },
-  {
-    id: 5,
-    name: "Charlie Wilson",
-    email: "charlie@example.com",
-    role: "Admin",
-    status: "Active",
-    phone: "+1234567894",
-    joinDate: "2024-02-15",
-  },
-  {
-    id: 6,
-    name: "Diana Martinez",
-    email: "diana@example.com",
-    role: "Editor",
-    status: "Active",
-    phone: "+1234567895",
-    joinDate: "2024-03-05",
-  },
-  {
-    id: 7,
-    name: "Edward Davis",
-    email: "edward@example.com",
-    role: "User",
-    status: "Inactive",
-    phone: "+1234567896",
-    joinDate: "2024-01-30",
-  },
-  {
-    id: 8,
-    name: "Fiona Garcia",
-    email: "fiona@example.com",
-    role: "User",
-    status: "Active",
-    phone: "+1234567897",
-    joinDate: "2024-02-25",
-  },
-  {
-    id: 9,
-    name: "George Rodriguez",
-    email: "george@example.com",
-    role: "Admin",
-    status: "Active",
-    phone: "+1234567898",
-    joinDate: "2024-03-15",
-  },
-  {
-    id: 10,
-    name: "Hannah Lee",
-    email: "hannah@example.com",
-    role: "Editor",
-    status: "Active",
-    phone: "+1234567899",
-    joinDate: "2024-01-20",
-  },
-];
+const roleLabels: Record<UserProfile["role"], string> = {
+  admin: "Admin",
+  editor: "Editor",
+  customer: "User",
+};
+
+function formatRoleLabel(role: UserProfile["role"]) {
+  return roleLabels[role] ?? role;
+}
+
+function formatDate(value: Date) {
+  if (Number.isNaN(value.getTime())) {
+    return "-";
+  }
+  return value.toLocaleDateString();
+}
 
 export default function UserDataTable() {
-  const [users, setUsers] = useState<UserData[]>(initialUsers);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [roleFilter, setRoleFilter] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [roleFilter, setRoleFilter] = useState<"all" | UserProfile["role"]>(
+    "all"
+  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "Active" | "Inactive"
+  >("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
-    role: "User",
+    role: "customer",
     status: "Active",
     phone: "",
     joinDate: new Date().toISOString().split("T")[0],
   });
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((user: UserData) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phone.includes(searchTerm);
+  const refreshUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await listUsers();
+      const normalized = data.map((user) => ({
+        ...user,
+        status: user.status ?? "Active",
+      })) as UserRow[];
+      setUsers(normalized);
+    } catch (error) {
+      console.error("Error loading users:", error);
+      setError("Failed to load users.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      const matchesRole = roleFilter === "All" || user.role === roleFilter;
+  useEffect(() => {
+    void refreshUsers();
+  }, [refreshUsers]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, statusFilter, pageSize]);
+
+  const getUserName = (user: UserRow) =>
+    user.displayName || user.name || "Unnamed";
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const name = getUserName(user);
+      const phone = user.phone ?? "";
+      const status = user.status ?? "Active";
+      const matchesSearch =
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        phone.includes(searchTerm);
+
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
       const matchesStatus =
-        statusFilter === "All" || user.status === statusFilter;
+        statusFilter === "all" || status === statusFilter;
 
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, roleFilter, statusFilter]);
 
-  const totalPages = Math.ceil(filteredUsers.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return filteredUsers.slice(startIndex, startIndex + pageSize);
@@ -203,10 +164,11 @@ export default function UserDataTable() {
 
   const openAddModal = () => {
     setModalMode("add");
+    setSelectedUser(null);
     setFormData({
       name: "",
       email: "",
-      role: "User",
+      role: "customer",
       status: "Active",
       phone: "",
       joinDate: new Date().toISOString().split("T")[0],
@@ -214,57 +176,98 @@ export default function UserDataTable() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (user: UserData) => {
+  const openEditModal = (user: UserRow) => {
     setModalMode("edit");
     setSelectedUser(user);
     setFormData({
-      name: user.name,
+      name: user.displayName || user.name || "",
       email: user.email,
       role: user.role,
-      status: user.status,
-      phone: user.phone,
-      joinDate: user.joinDate,
+      status: user.status ?? "Active",
+      phone: user.phone ?? "",
+      joinDate: user.createdAt
+        ? new Date(user.createdAt).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
     });
     setIsModalOpen(true);
   };
 
-  const openDeleteModal = (user: UserData) => {
+  const openDeleteModal = (user: UserRow) => {
     setSelectedUser(user);
     setIsDeleteModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (modalMode === "add") {
-      const newUser: UserData = {
-        id: users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1,
-        ...formData,
-      };
-      setUsers([...users, newUser]);
-    } else {
-      if (selectedUser) {
-        setUsers(
-          users.map((u) =>
-            u.id === selectedUser.id ? { ...u, ...formData } : u
-          )
-        );
+    try {
+      setIsSaving(true);
+      const createdAt = formData.joinDate
+        ? new Date(formData.joinDate)
+        : new Date();
+
+      if (modalMode === "add") {
+        const uid =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `user_${Date.now()}`;
+
+        const profile: UserProfile = {
+          uid,
+          email: formData.email,
+          displayName: formData.name,
+          name: formData.name || undefined,
+          phone: formData.phone || undefined,
+          role: formData.role,
+          createdAt,
+          status: formData.status,
+          bio: "",
+        };
+
+        await createUserProfile(profile);
+      } else if (selectedUser) {
+        const updates: Partial<UserProfile> = {
+          displayName: formData.name,
+          name: formData.name || undefined,
+          email: formData.email,
+          phone: formData.phone || undefined,
+          role: formData.role,
+          status: formData.status,
+          createdAt,
+        };
+
+        await updateUserProfile(selectedUser.uid, updates);
       }
+
+      await refreshUsers();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("User save error:", error);
+    } finally {
+      setIsSaving(false);
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = () => {
-    if (selectedUser) {
-      setUsers(users.filter((u) => u.id !== selectedUser.id));
+  const handleDelete = async () => {
+    if (!selectedUser) {
+      return;
     }
-    setIsDeleteModalOpen(false);
+    try {
+      setIsDeleting(true);
+      await deleteUserProfile(selectedUser.uid);
+      await refreshUsers();
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Delete user error:", error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const getRoleBadgeVariant = (
-    role: string
+    role: UserProfile["role"]
   ): "default" | "secondary" | "outline" => {
-    if (role === "Admin") return "default";
-    if (role === "Editor") return "secondary";
+    if (role === "admin") return "default";
+    if (role === "editor") return "secondary";
     return "outline";
   };
 
@@ -274,7 +277,6 @@ export default function UserDataTable() {
 
   return (
     <div className="w-full space-y-4">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Users</h2>
@@ -288,7 +290,6 @@ export default function UserDataTable() {
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -304,10 +305,10 @@ export default function UserDataTable() {
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="All">All Roles</SelectItem>
-            <SelectItem value="Admin">Admin</SelectItem>
-            <SelectItem value="Editor">Editor</SelectItem>
-            <SelectItem value="User">User</SelectItem>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="editor">Editor</SelectItem>
+            <SelectItem value="customer">User</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -315,14 +316,15 @@ export default function UserDataTable() {
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="All">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="Active">Active</SelectItem>
             <SelectItem value="Inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Table */}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -337,59 +339,71 @@ export default function UserDataTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedUsers.length > 0 ? (
-              paginatedUsers.map((user: UserData) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-5 py-2 ">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{user.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(user.status)}>
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.joinDate}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditModal(user)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => openDeleteModal(user)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  Loading users...
+                </TableCell>
+              </TableRow>
+            ) : paginatedUsers.length > 0 ? (
+              paginatedUsers.map((user) => {
+                const name = getUserName(user);
+                const initials =
+                  name
+                    .split(" ")
+                    .filter(Boolean)
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2) || "U";
+
+                return (
+                  <TableRow key={user.uid}>
+                    <TableCell>
+                      <div className="flex items-center gap-5 py-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>{initials}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone ?? "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                        {formatRoleLabel(user.role)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(user.status)}>
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(user.createdAt)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditModal(user)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openDeleteModal(user)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
@@ -401,7 +415,6 @@ export default function UserDataTable() {
         </Table>
       </div>
 
-      {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows per page:</span>
@@ -423,7 +436,7 @@ export default function UserDataTable() {
 
         <div className="flex items-center gap-6">
           <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages || 1}
+            Page {Math.min(currentPage, totalPages)} of {totalPages}
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -462,7 +475,6 @@ export default function UserDataTable() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[750px]">
           <DialogHeader>
@@ -513,15 +525,17 @@ export default function UserDataTable() {
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(v) => setFormData({ ...formData, role: v })}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, role: v as UserProfile["role"] })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="User">User</SelectItem>
-                    <SelectItem value="Editor">Editor</SelectItem>
-                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="customer">User</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -529,7 +543,12 @@ export default function UserDataTable() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(v) => setFormData({ ...formData, status: v })}
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      status: v as FormData["status"],
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -557,21 +576,20 @@ export default function UserDataTable() {
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} disabled={isSaving}>
               {modalMode === "add" ? "Add User" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete{" "}
-              <strong>{selectedUser?.name}</strong>? This action cannot be
+              <strong>{selectedUser?.displayName}</strong>? This action cannot be
               undone.
             </DialogDescription>
           </DialogHeader>
@@ -582,7 +600,11 @@ export default function UserDataTable() {
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
               Delete
             </Button>
           </DialogFooter>
