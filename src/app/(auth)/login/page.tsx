@@ -53,7 +53,7 @@ export default function LoginPage() {
       const data: LoginResponse = await res.json();
       sessionStorage.setItem("accessToken", data.access_token);
 
-      return console.log(data);
+      window.location.href = "/shop";
     } catch (err) {
       setError("Invalid credentials. Please try again.");
       console.error(err);
