@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
 
 // UI Components
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,18 +14,23 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import GoogleButton from "@/components/auth/GoogleButton";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState(""); // ✅ renamed
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+
+  type LoginResponse = {
+    access_token: string;
+    refresh_token?: string;
+    role?: string;
+    tokenType?: string;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,31 +38,26 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
+      const res = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }), // ✅ backend expects username/password
+      });
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userRole = userData.role;
-
-        // Redirect based on role
-        if (userRole === "admin") {
-          router.replace("/dashboard");
-        } else {
-          router.replace("/");
-        }
-      } else {
-        router.replace("/");
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(`Login failed (${res.status}): ${msg}`);
       }
+
+      const data: LoginResponse = await res.json();
+      sessionStorage.setItem("accessToken", data.access_token);
+
+      return console.log(data);
     } catch (err) {
       setError("Invalid credentials. Please try again.");
-      console.error("Login Error:", err);
+      console.error(err);
+    } finally {
       setLoading(false);
     }
   };
@@ -76,11 +71,11 @@ export default function LoginPage() {
               Welcome back
             </CardTitle>
             <CardDescription className="text-center">
-              Enter your email below to login to your account
+              Enter your username below to login to your account
             </CardDescription>
           </CardHeader>
+
           <CardContent className="grid gap-4">
-            {/* Error Alert */}
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -88,7 +83,6 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* Google Login */}
             <div className="grid gap-2">
               <GoogleButton />
             </div>
@@ -105,21 +99,19 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleLogin} className="grid gap-4">
-              {/* Email Field */}
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
+                  id="username"
+                  type="text"
+                  placeholder="your username"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   disabled={loading}
                 />
               </div>
 
-              {/* Password Field */}
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
@@ -130,7 +122,7 @@ export default function LoginPage() {
                     Forgot your password?
                   </Link>
                 </div>
-                
+
                 <div className="relative">
                   <Input
                     id="password"
@@ -139,7 +131,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="pr-10" // Make room for the eye icon
+                    className="pr-10"
                   />
                   <Button
                     type="button"
@@ -161,7 +153,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
@@ -176,18 +167,26 @@ export default function LoginPage() {
 
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="underline underline-offset-4 hover:text-primary">
+              <Link
+                href="/register"
+                className="underline underline-offset-4 hover:text-primary"
+              >
                 Sign up
               </Link>
             </div>
           </CardContent>
         </Card>
-        
-        {/* Footer Links */}
+
         <div className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
-            <Link href="/terms" className="hover:underline">Terms</Link>
-            <Link href="/privacy" className="hover:underline">Privacy</Link>
-            <Link href="/help" className="hover:underline">Help</Link>
+          <Link href="/terms" className="hover:underline">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:underline">
+            Privacy
+          </Link>
+          <Link href="/help" className="hover:underline">
+            Help
+          </Link>
         </div>
       </div>
     </div>
