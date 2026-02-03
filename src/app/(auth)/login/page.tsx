@@ -17,13 +17,16 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import GoogleButton from "@/components/auth/GoogleButton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState(""); // ✅ renamed
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const { accessToken, setAccessToken } = useAuth();
 
   type LoginResponse = {
     access_token: string;
@@ -51,9 +54,10 @@ export default function LoginPage() {
       }
 
       const data: LoginResponse = await res.json();
-      sessionStorage.setItem("accessToken", data.access_token);
+      setAccessToken(data.access_token);
 
-      window.location.href = "/shop";
+      window.location.href = "/dashboard";
+      console.log("ACCESS TOKEN (memory):", accessToken);
     } catch (err) {
       setError("Invalid credentials. Please try again.");
       console.error(err);
@@ -90,7 +94,7 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <GoogleButton />
             </div>
 
@@ -103,7 +107,7 @@ export default function LoginPage() {
                   Or continue with
                 </span>
               </div>
-            </div>
+            </div> */}
 
             <form onSubmit={handleLogin} className="grid gap-4">
               <div className="grid gap-2">
