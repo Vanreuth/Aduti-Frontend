@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { generateBreadcrumbs } from "@/lib/breadcrumb-uttils";
 
@@ -113,6 +113,15 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // IMPORTANT: avoid Radix SSR hydration mismatch
+  if (!mounted) return null; // or a skeleton loader
+
   return (
     <SidebarProvider
       style={

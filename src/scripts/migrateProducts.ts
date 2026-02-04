@@ -1,5 +1,5 @@
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { db } from "@/lib/api/config";
 
 // Your existing product data
 const productsToMigrate = [

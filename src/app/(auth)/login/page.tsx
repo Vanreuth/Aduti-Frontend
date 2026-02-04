@@ -16,10 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
-import GoogleButton from "@/components/auth/GoogleButton";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api/client";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -41,23 +43,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/login", {
+      const data = await apiFetch<{ access_token: string }>("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username, password }), // ✅ backend expects username/password
+        body: JSON.stringify({ username, password }),
       });
 
-      if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        throw new Error(`Login failed (${res.status}): ${msg}`);
-      }
-
-      const data: LoginResponse = await res.json();
       setAccessToken(data.access_token);
 
-      window.location.href = "/dashboard";
-      console.log("ACCESS TOKEN (memory):", accessToken);
+      // redirect AFTER token is set
+      router.push("/dashboard");
+      console.log("ACCESS TOKEN (memory):", data.access_token);
     } catch (err) {
       setError("Invalid credentials. Please try again.");
       console.error(err);

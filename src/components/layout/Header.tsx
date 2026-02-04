@@ -23,7 +23,6 @@ import { WishlistSheet } from "./navbar/WishlistSheet";
 import { CartSheet } from "./navbar/CartSheet";
 import { SearchDialog } from "./navbar/SearchDialog";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProfile } from "@/lib/firebase/user";
 import { UserProfile } from "@/types/user";
 
 const NAV_LINKS = [
@@ -249,7 +248,12 @@ export default function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild variant="ghost" size="icon" className="rounded-full">
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+              >
                 <Link href="/login" aria-label="Sign in">
                   <User className="h-5 w-5" />
                 </Link>

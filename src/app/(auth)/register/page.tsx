@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -25,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 // Icons
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { register } from "@/lib/api/auth";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -46,9 +44,6 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
   function handleChange(e) {
     const { id, value } = e.target;
@@ -73,39 +68,20 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.username.trim(),
-          email: formData.email.trim(),
-          phoneNumber: formData.phoneNumber.trim(),
-          address: formData.address?.trim() || "",
-          bio: formData.bio?.trim() || "",
-          photo: formData.photo?.trim() || "",
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-        }),
+      await register({
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        phoneNumber: formData.phoneNumber?.trim() || "",
+        address: formData.address?.trim() || "",
+        bio: formData.bio?.trim() || "",
+        photo: formData.photo?.trim() || "",
       });
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        const msg =
-          data?.message ||
-          data?.error ||
-          (data?.errors
-            ? Object.values(data.errors).join(", ")
-            : Array.isArray(data)
-              ? data.map((x) => x?.defaultMessage || x?.message).join(", ")
-              : null) ||
-          `Register failed (${res.status})`;
-
-        throw new Error(msg);
-      }
 
       router.push("/dashboard");
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError((err as Error)?.message || "Register failed");
     } finally {
       setLoading(false);
     }

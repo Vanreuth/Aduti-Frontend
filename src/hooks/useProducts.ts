@@ -8,7 +8,7 @@ import {
   getProductsByCategory,
   getFeaturedProducts,
   searchProducts,
-} from "@/lib/firebase/products";
+} from "@/lib/api/product";
 
 /** small helper to avoid setting state after unmount + avoid stale responses */
 function useAliveFlag() {
@@ -195,7 +195,7 @@ export function useProductSearch() {
         setLoading(false);
       }
     },
-    [alive]
+    [alive],
   );
 
   return { products, loading, error, search };
