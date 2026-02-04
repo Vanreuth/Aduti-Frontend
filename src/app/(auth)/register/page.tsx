@@ -99,15 +99,8 @@ export default function SignupPage() {
   }, [formData.password]);
 
   return (
-    <div className="relative min-h-screen w-full bg-linear-to-br from-slate-950 via-zinc-900 to-slate-800 px-6 py-10">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 right-8 h-64 w-64 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute bottom-16 left-6 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
-      </div>
-
+    <div className="relative min-h-screen w-full bg-linear-to-br px-6 py-10">
       <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-white/95 shadow-2xl">
-        <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-500 via-sky-500 to-indigo-500" />
         <Card className="border-0 bg-transparent shadow-none">
           <CardHeader className="space-y-2 px-10 pt-10">
             <CardTitle className="text-3xl font-semibold text-zinc-900">

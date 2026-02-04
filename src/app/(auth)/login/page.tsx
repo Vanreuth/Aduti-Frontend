@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-// UI Components
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,95 +14,113 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api/client";
+
+type LoginResponse = {
+  access_token: string;
+  refresh_token?: string;
+  role?: string;
+  tokenType?: string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, setAccessToken, loading: authLoading } = useAuth();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const [error, setError] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { accessToken, setAccessToken } = useAuth();
+  // If already logged in, go dashboard
+  useEffect(() => {
+    if (!authLoading && user) router.replace("/dashboard");
+  }, [authLoading, user, router]);
 
-  type LoginResponse = {
-    access_token: string;
-    refresh_token?: string;
-    role?: string;
-    tokenType?: string;
-  };
+  const isBusy = authLoading || submitting;
+
+  const canSubmit = useMemo(() => {
+    return username.trim().length > 0 && password.length > 0 && !isBusy;
+  }, [username, password, isBusy]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
+
     setError("");
-    setLoading(true);
+    setSubmitting(true);
 
     try {
-      const data = await apiFetch<{ access_token: string }>("/api/auth/login", {
+      const data = await apiFetch<LoginResponse>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: username.trim(), password }),
       });
 
       setAccessToken(data.access_token);
-
-      // redirect AFTER token is set
-      router.push("/dashboard");
-      console.log("ACCESS TOKEN (memory):", data.access_token);
-    } catch (err) {
-      setError("Invalid credentials. Please try again.");
+      router.replace("/dashboard");
+    } catch (err: any) {
+      const msg =
+        err?.message ||
+        err?.data?.message ||
+        "Invalid credentials. Please try again.";
+      setError(String(msg));
       console.error(err);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-linear-to-br from-slate-950 via-zinc-900 to-slate-800 px-6 py-10">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 right-8 h-64 w-64 rounded-full bg-emerald-500/20 blur-3xl" />
-        <div className="absolute bottom-16 left-6 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
-      </div>
-
-      <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white/95 shadow-2xl">
-        <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-500 via-sky-500 to-indigo-500" />
-        <Card className="border-0 bg-transparent shadow-none">
-          <CardHeader className="space-y-2 px-10 pt-10 text-center">
+    <div className="m-20 overflow-hidden bg-white">
+      <div className="flex h-full items-center justify-center px-6">
+        <Card className="w-full max-w-md rounded-3xl">
+          <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-3xl font-semibold text-zinc-900">
               Welcome back
             </CardTitle>
-            <CardDescription className="text-center">
-              Enter your username below to login to your account
+            <CardDescription className="text-zinc-600">
+              Sign in with your staff account
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="grid gap-4">
+          <CardContent className="space-y-4">
+            {/* Alert (no scroll, compact) */}
             {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-red-900">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-red-100">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold leading-5">
+                      Login failed
+                    </p>
+                    <p className="mt-0.5 text-sm text-red-700">{error}</p>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setError("")}
+                        className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                      >
+                        Dismiss
+                      </button>
+                      <Link
+                        href="/forgot-password"
+                        className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                      >
+                        Reset password
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
-
-            {/* <div className="grid gap-2">
-              <GoogleButton />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-zinc-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div> */}
 
             <form onSubmit={handleLogin} className="grid gap-4">
               <div className="grid gap-2">
@@ -114,8 +132,9 @@ export default function LoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  disabled={loading}
+                  disabled={isBusy}
                   className="h-11"
+                  autoComplete="username"
                 />
               </div>
 
@@ -124,9 +143,9 @@ export default function LoginPage() {
                   <Label htmlFor="password">Password</Label>
                   <Link
                     href="/forgot-password"
-                    className="ml-auto inline-block text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+                    className="text-sm text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
                   >
-                    Forgot your password?
+                    Forgot password?
                   </Link>
                 </div>
 
@@ -137,64 +156,78 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="pr-10"
+                    disabled={isBusy}
+                    className="h-11 pr-11"
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
+                    className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword((v) => !v)}
+                    disabled={isBusy}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4 text-zinc-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4 text-zinc-500" />
                     )}
-                    <span className="sr-only">
-                      {showPassword ? "Hide password" : "Show password"}
-                    </span>
                   </Button>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
+              <Button
+                type="submit"
+                className="h-11 w-full"
+                disabled={!canSubmit}
+              >
+                {isBusy ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in...
+                    Signing in...
                   </>
                 ) : (
-                  "Login"
+                  "Sign in"
                 )}
               </Button>
             </form>
 
-            <div className="mt-4 text-center text-sm">
+            <div className="pt-1 text-center text-sm text-zinc-700">
               Don&apos;t have an account?{" "}
               <Link
                 href="/register"
-                className="underline underline-offset-4 hover:text-primary"
+                className="font-medium underline underline-offset-4 hover:text-primary"
               >
                 Sign up
               </Link>
             </div>
+
+            <div className="flex justify-center gap-4 pt-2 text-xs text-zinc-500">
+              <Link
+                href="/terms"
+                className="hover:text-zinc-900 hover:underline"
+              >
+                Terms
+              </Link>
+              <Link
+                href="/privacy"
+                className="hover:text-zinc-900 hover:underline"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/help"
+                className="hover:text-zinc-900 hover:underline"
+              >
+                Help
+              </Link>
+            </div>
           </CardContent>
         </Card>
-
-        <div className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
-          <Link href="/terms" className="hover:underline">
-            Terms
-          </Link>
-          <Link href="/privacy" className="hover:underline">
-            Privacy
-          </Link>
-          <Link href="/help" className="hover:underline">
-            Help
-          </Link>
-        </div>
       </div>
     </div>
   );
