@@ -16,53 +16,9 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { generateBreadcrumbs } from "@/lib/breadcrumb-uttils";
-import { useAuth } from "@/context/AuthContext";
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
-    }
-  }, [loading, user, router]);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <span className="text-sm text-muted-foreground">Loading...</span>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "250px",
-          "--sidebar-width-icon": "4rem",
-        } as React.CSSProperties
-      }
-    >
-      <div className="flex h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
-        <AppSidebar />
-        <MainLayout>{children}</MainLayout>
-      </div>
-    </SidebarProvider>
-  );
-}
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const { state } = useSidebar();
@@ -151,3 +107,34 @@ const Footer = () => {
     </footer>
   );
 };
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // IMPORTANT: avoid Radix SSR hydration mismatch
+  if (!mounted) return null; // or a skeleton loader
+
+  return (
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "250px",
+          "--sidebar-width-icon": "4rem",
+        } as React.CSSProperties
+      }
+    >
+      <div className="flex h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
+        <AppSidebar />
+        <MainLayout>{children}</MainLayout>
+      </div>
+    </SidebarProvider>
+  );
+}

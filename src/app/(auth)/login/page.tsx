@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
 
 // UI Components
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,18 +14,28 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
-import GoogleButton from "@/components/auth/GoogleButton";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api/client";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const router = useRouter();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+
+  const { accessToken, setAccessToken } = useAuth();
+
+  type LoginResponse = {
+    access_token: string;
+    refresh_token?: string;
+    role?: string;
+    tokenType?: string;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,31 +43,20 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
+      const data = await apiFetch<{ access_token: string }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userRole = userData.role;
+      setAccessToken(data.access_token);
 
-        // Redirect based on role
-        if (userRole === "admin") {
-          router.replace("/dashboard");
-        } else {
-          router.replace("/");
-        }
-      } else {
-        router.replace("/");
-      }
+      // redirect AFTER token is set
+      router.push("/dashboard");
+      console.log("ACCESS TOKEN (memory):", data.access_token);
     } catch (err) {
       setError("Invalid credentials. Please try again.");
-      console.error("Login Error:", err);
+      console.error(err);
+    } finally {
       setLoading(false);
     }
   };
@@ -82,11 +76,12 @@ export default function LoginPage() {
             <CardTitle className="text-3xl font-semibold text-zinc-900">
               Welcome back
             </CardTitle>
-            <CardDescription className="text-zinc-500">
-              Enter your email below to login to your account
+            <CardDescription className="text-center">
+              Enter your username below to login to your account
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 px-10 pb-8">
+
+          <CardContent className="grid gap-4">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -94,7 +89,9 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            <GoogleButton />
+            {/* <div className="grid gap-2">
+              <GoogleButton />
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -105,18 +102,18 @@ export default function LoginPage() {
                   Or continue with
                 </span>
               </div>
-            </div>
+            </div> */}
 
             <form onSubmit={handleLogin} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
+                  id="username"
+                  type="text"
+                  placeholder="your username"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   disabled={loading}
                   className="h-11"
                 />
@@ -141,7 +138,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="h-11 pr-10"
+                    className="pr-10"
                   />
                   <Button
                     type="button"
@@ -163,11 +160,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="h-11 w-full bg-zinc-900 hover:bg-zinc-800"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -191,18 +184,16 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <div className="border-t px-10 py-6">
-          <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-            <Link href="/terms" className="hover:underline">
-              Terms
-            </Link>
-            <Link href="/privacy" className="hover:underline">
-              Privacy
-            </Link>
-            <Link href="/help" className="hover:underline">
-              Help
-            </Link>
-          </div>
+        <div className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
+          <Link href="/terms" className="hover:underline">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:underline">
+            Privacy
+          </Link>
+          <Link href="/help" className="hover:underline">
+            Help
+          </Link>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import {
   orderBy,
   query,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { db } from "@/lib/api/config";
 import { Package, Star, Trash2, Plus, RefreshCw } from "lucide-react";
 import { Product } from "@/types/product";
 
@@ -155,7 +155,7 @@ export default function Page() {
 
             const discount = hasDiscount
               ? Math.round(
-                  ((p.originalPrice! - p.price) / p.originalPrice!) * 100
+                  ((p.originalPrice! - p.price) / p.originalPrice!) * 100,
                 )
               : 0;
 
@@ -243,7 +243,7 @@ export default function Page() {
                   <div className="mt-3 flex gap-2">
                     <Link
                       href={`/dashboard/products/edit-product?id=${encodeURIComponent(
-                        p.id
+                        p.id,
                       )}`}
                       className="flex-1 rounded-lg border px-3 py-2 text-center text-xs font-semibold hover:bg-gray-50"
                     >

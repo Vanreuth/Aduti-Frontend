@@ -7,7 +7,7 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/shop/StarRating";
 import { Product } from "@/types/product";
-import { getAllProducts } from "@/lib/firebase/products";
+import { getAllProducts } from "@/lib/api/product";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
@@ -103,7 +103,7 @@ export default function ProductDetailPage() {
               <Heart
                 className={cn(
                   "h-5 w-5",
-                  isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400"
+                  isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400",
                 )}
               />
             </button>

@@ -1,46 +1,56 @@
 "use client";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User, signOut as firebaseSignOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { me, type MeResponse } from "@/lib/api/auth";
 
-interface AuthContextType {
-  user: User | null;
+type AuthContextType = {
+  accessToken: string | null;
+  user: MeResponse | null;
+  setAccessToken: (token: string | null) => void;
   loading: boolean;
-  signOut: () => Promise<void>;
-}
+  logout: () => void;
+};
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  signOut: async () => {}
-});
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [user, setUser] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // whenever token changes, load /me
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user || null);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    (async () => {
+      try {
+        if (!accessToken) {
+          setUser(null);
+          return;
+        }
+        const profile = await me(accessToken);
+        setUser(profile);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [accessToken]);
 
-  const signOut = async () => {
-    try {
-      await firebaseSignOut(auth);
-    } catch (error) {
-      console.error("Sign out error:", error);
-      throw error;
-    }
+  const logout = () => {
+    setAccessToken(null);
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider
+      value={{ accessToken, user, setAccessToken, loading, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
+}

@@ -17,7 +17,7 @@ import {
   EmptyState,
   priceRanges,
 } from "@/components/shop";
-import { getAllProducts } from "@/lib/firebase/products";
+
 import { Product } from "@/types/product";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -61,25 +61,6 @@ function SearchContent() {
   const [sortBy, setSortBy] = useState(initialSortBy);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
-  // Fetch products from Firebase on mount
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const products = await getAllProducts();
-      setAllProducts(products);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Combine URL search with local query
   const activeQuery = localQuery || searchQuery;
 
@@ -107,7 +88,7 @@ function SearchContent() {
     filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
   } else if (sortBy === "rating") {
     filteredProducts = [...filteredProducts].sort(
-      (a, b) => b.rating - a.rating
+      (a, b) => b.rating - a.rating,
     );
   } else if (sortBy === "newest") {
     filteredProducts = [...filteredProducts]
@@ -138,31 +119,6 @@ function SearchContent() {
     setPriceRange(0);
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900 mx-auto mb-4"></div>
-          <p className="text-zinc-600">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchProducts}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ key to animate grid when filters change
   const gridKey = `${activeQuery}|${category}|${priceRange}|${sortBy}|${filteredProducts.length}`;
 
   return (

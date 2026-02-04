@@ -23,7 +23,6 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
-import { getAllProducts } from "@/lib/firebase/products";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
@@ -104,7 +103,7 @@ export function QuickViewDialog({
       `Added ${quantity} item${quantity > 1 ? "s" : ""} to cart 🛒`,
       {
         description: "You can review it in your cart anytime",
-      }
+      },
     );
   };
 
@@ -135,8 +134,8 @@ export function QuickViewDialog({
             star <= Math.floor(rating)
               ? "fill-amber-400 text-amber-400"
               : star - 0.5 <= rating
-              ? "fill-amber-400/50 text-amber-400"
-              : "fill-zinc-200 text-zinc-200"
+                ? "fill-amber-400/50 text-amber-400"
+                : "fill-zinc-200 text-zinc-200",
           )}
         />
       ))}
@@ -145,7 +144,7 @@ export function QuickViewDialog({
 
   const discount = product?.originalPrice
     ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
+        ((product.originalPrice - product.price) / product.originalPrice) * 100,
       )
     : 0;
 
@@ -253,7 +252,7 @@ export function QuickViewDialog({
                         <button
                           onClick={() =>
                             setSelectedImageIndex((prev) =>
-                              prev === 0 ? productImages.length - 1 : prev - 1
+                              prev === 0 ? productImages.length - 1 : prev - 1,
                             )
                           }
                           className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-md hover:bg-white transition-all hover:scale-110"
@@ -263,7 +262,7 @@ export function QuickViewDialog({
                         <button
                           onClick={() =>
                             setSelectedImageIndex((prev) =>
-                              prev === productImages.length - 1 ? 0 : prev + 1
+                              prev === productImages.length - 1 ? 0 : prev + 1,
                             )
                           }
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-md hover:bg-white transition-all hover:scale-110"
@@ -284,7 +283,7 @@ export function QuickViewDialog({
                           "relative w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden border-2 transition-all",
                           selectedImageIndex === idx
                             ? "border-zinc-900 shadow-md scale-105"
-                            : "border-transparent hover:border-zinc-300"
+                            : "border-transparent hover:border-zinc-300",
                         )}
                       >
                         <Image
@@ -383,7 +382,7 @@ export function QuickViewDialog({
                         "h-11 w-11 md:h-12 md:w-12 rounded-full border-2 transition-all shrink-0",
                         isInWishlist
                           ? "bg-red-50 border-red-200 hover:bg-red-100"
-                          : "border-zinc-200 hover:border-zinc-300"
+                          : "border-zinc-200 hover:border-zinc-300",
                       )}
                       onClick={toggleWishlist}
                     >
@@ -392,7 +391,7 @@ export function QuickViewDialog({
                           "w-4 h-4 md:w-5 md:h-5",
                           isInWishlist
                             ? "fill-red-500 text-red-500"
-                            : "text-zinc-600"
+                            : "text-zinc-600",
                         )}
                       />
                     </Button>
