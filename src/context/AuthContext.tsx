@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // whenever token changes, load /me
   useEffect(() => {
     (async () => {
+      setLoading(true);
       try {
         if (!accessToken) {
           setUser(null);

@@ -1,25 +1,25 @@
 import { apiFetch } from "./client";
 
 export function register(payload: any) {
-  return apiFetch("/api/v1/auth/register", {
+  return apiFetch("/api/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function login(payload: any) {
-  return apiFetch("/api/v1/auth/login", {
+  return apiFetch("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function getMe() {
-  return apiFetch("/api/v1/auth/me");
+  return apiFetch("/api/auth/me");
 }
 
 export function logout() {
-  return apiFetch("/api/v1/auth/logout", { method: "POST" });
+  return apiFetch("/api/auth/logout", { method: "POST" });
 }
 
 export type MeResponse = {
