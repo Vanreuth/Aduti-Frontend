@@ -117,7 +117,7 @@ export default function HeroSlider() {
   const handleBlur = useCallback(() => autoplay.play(), [autoplay]);
 
   return (
-    <div className="container-app">
+    <div>
       <section
         className="relative w-full overflow-hidden"
         aria-roledescription="carousel"
