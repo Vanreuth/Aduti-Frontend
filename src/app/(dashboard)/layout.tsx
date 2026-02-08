@@ -17,7 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import React, { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { generateBreadcrumbs } from "@/lib/breadcrumb-uttils";
 import { useAuth } from "@/context/AuthContext";
 

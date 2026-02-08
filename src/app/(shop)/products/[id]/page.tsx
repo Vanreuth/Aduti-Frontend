@@ -13,6 +13,8 @@ import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+const PLACEHOLDER_IMAGE = "/product/placeholder.svg";
+
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
 
@@ -88,7 +90,7 @@ export default function ProductDetailPage() {
           {/* Image */}
           <div className="relative aspect-3/4 rounded-2xl overflow-hidden bg-zinc-100">
             <Image
-              src={product.image}
+              src={product.image || PLACEHOLDER_IMAGE}
               alt={product.name}
               fill
               priority

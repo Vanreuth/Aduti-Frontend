@@ -27,6 +27,8 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
 
+const PLACEHOLDER_IMAGE = "/product/placeholder.svg";
+
 type QuickViewDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,11 +81,16 @@ export function QuickViewDialog({
   const isInWishlist = product ? has(String(product.id)) : false;
 
   // Generate multiple images for gallery effect (using same image with different crops)
+  const imageUrl = product?.image || PLACEHOLDER_IMAGE;
   const productImages = product
     ? [
-        product.image,
-        product.image.replace("fit=crop", "fit=crop&crop=top"),
-        product.image.replace("fit=crop", "fit=crop&crop=bottom"),
+        imageUrl,
+        imageUrl.includes("fit=crop")
+          ? imageUrl.replace("fit=crop", "fit=crop&crop=top")
+          : imageUrl,
+        imageUrl.includes("fit=crop")
+          ? imageUrl.replace("fit=crop", "fit=crop&crop=bottom")
+          : imageUrl,
       ]
     : [];
 

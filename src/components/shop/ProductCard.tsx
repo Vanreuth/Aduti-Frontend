@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QuickViewDialog } from "@/components/shop/QuickViewDialog";
 
+const PLACEHOLDER_IMAGE = "/product/placeholder.svg";
+
 interface ProductCardProps {
   product: Product;
 }
@@ -61,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
           onClick={() => setQuickOpen(true)}
         >
           <Image
-            src={product.image}
+            src={product.image || PLACEHOLDER_IMAGE}
             alt={product.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -89,7 +91,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <Heart
               className={cn(
                 "h-5 w-5",
-                isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400"
+                isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400",
               )}
             />
           </button>
