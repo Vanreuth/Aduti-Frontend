@@ -36,7 +36,7 @@ export default function ProductOverview() {
       activeCats.map((c) => ({
         id: c.slug, // IMPORTANT: use slug for filtering
         label: c.name,
-      }))
+      })),
     );
   }, [categories]);
 
@@ -69,7 +69,7 @@ export default function ProductOverview() {
   const filteredProducts = useMemo(() => {
     if (activeTab === "all") return products;
     return products.filter(
-      (p) => (p.category?.slug ?? "").toLowerCase() === activeTab.toLowerCase()
+      (p) => (p.category?.slug ?? "").toLowerCase() === activeTab.toLowerCase(),
     );
   }, [activeTab, products]);
 
@@ -91,7 +91,9 @@ export default function ProductOverview() {
   };
 
   const toggleWishlist = (product: Product) => {
-    const exists = wishlistItems.some((i) => String(i.id) === String(product.id));
+    const exists = wishlistItems.some(
+      (i) => String(i.id) === String(product.id),
+    );
 
     const thumbnail =
       product.variants?.[0]?.images?.[0]?.imageUrl ?? "/placeholder.png";
@@ -180,7 +182,10 @@ export default function ProductOverview() {
             </motion.div>
 
             {/* Tabs */}
-            <motion.div variants={fadeUpItem} className="flex justify-center mb-10">
+            <motion.div
+              variants={fadeUpItem}
+              className="flex justify-center mb-10"
+            >
               <div className="relative inline-flex flex-wrap justify-center gap-2 p-1.5 bg-zinc-100 rounded-full">
                 {tabs.map((tab) => {
                   const active = activeTab === tab.id;
@@ -218,7 +223,9 @@ export default function ProductOverview() {
             {/* Grid */}
             {filteredProducts.length === 0 ? (
               <motion.div variants={fadeUpItem} className="text-center py-12">
-                <p className="text-zinc-600">No products found in this category.</p>
+                <p className="text-zinc-600">
+                  No products found in this category.
+                </p>
               </motion.div>
             ) : (
               <AnimatePresence mode="wait">

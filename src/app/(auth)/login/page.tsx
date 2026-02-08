@@ -63,9 +63,10 @@ export default function LoginPage() {
         body: JSON.stringify({ username: username.trim(), password }),
       });
 
+      localStorage.setItem("accessToken", data.access_token);
       setAccessToken(data.access_token);
-      router.replace(redirectTo);
-    } catch (err: unknown) {
+      router.replace("/shop");
+    } catch (err: any) {
       const msg =
         err instanceof Error
           ? err.message

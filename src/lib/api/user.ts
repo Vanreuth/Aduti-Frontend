@@ -31,3 +31,30 @@ export function deleteUserProfile(id: number | string) {
     method: "DELETE",
   }) as Promise<void>;
 }
+
+export type ProfilePayload = {
+  name: string;
+  address?: string;
+  phoneNumber?: string;
+};
+
+// Password change only
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export function getProfile(accessToken: string) {
+  return apiFetch("/api/auth/profile", { method: "GET" }, accessToken);
+}
+
+export function updateProfile(accessToken: string, payload: ProfilePayload) {
+  return apiFetch(
+    "/api/auth/profile",
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
+}
