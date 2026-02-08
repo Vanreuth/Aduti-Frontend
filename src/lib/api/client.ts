@@ -1,4 +1,5 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -35,6 +36,3 @@ export async function request<T>(path: string): Promise<T> {
   if (!res.ok) throw new Error(`HTTP ${res.status} - ${path}`);
   return res.json();
 }
-
-
-

@@ -61,8 +61,9 @@ export default function LoginPage() {
         body: JSON.stringify({ username: username.trim(), password }),
       });
 
+      localStorage.setItem("accessToken", data.access_token);
       setAccessToken(data.access_token);
-      router.replace("/dashboard");
+      router.replace("/shop");
     } catch (err: any) {
       const msg =
         err?.message ||
