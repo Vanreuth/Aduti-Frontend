@@ -7,15 +7,9 @@ import Title from "@/components/common/Title";
 import { useCart } from "@/context/CartContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, Trash2 } from "lucide-react";
 
 export default function CartPage() {
-  const { items, subtotal, clear, setQty, removeItem } = useCart();
-
-  const handleClear = () => {
-    const ok = window.confirm("Clear all items from your cart?");
-    if (ok) clear();
-  };
+  const { items, subtotal, setQty, removeItem } = useCart();
 
   return (
     <section className="max-w-7xl mx-auto py-16 px-4">
@@ -69,19 +63,6 @@ export default function CartPage() {
 
                 <Button asChild className="w-full">
                   <Link href="/order">Proceed to Checkout</Link>
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleClear}
-                >
-                  Clear cart
-                </Button>
-
-                <Button asChild variant="ghost" className="w-full">
-                  <Link href="/shop">Continue Shopping</Link>
                 </Button>
               </CardContent>
             </Card>

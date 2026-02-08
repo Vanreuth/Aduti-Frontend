@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,8 @@ type LoginResponse = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const { user, setAccessToken, loading: authLoading } = useAuth();
 
   const [username, setUsername] = useState("");
@@ -37,10 +39,10 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // If already logged in, go dashboard
+  // If already logged in, go to redirect destination
   useEffect(() => {
-    if (!authLoading && user) router.replace("/dashboard");
-  }, [authLoading, user, router]);
+    if (!authLoading && user) router.replace(redirectTo);
+  }, [authLoading, user, router, redirectTo]);
 
   const isBusy = authLoading || submitting;
 
@@ -62,13 +64,13 @@ export default function LoginPage() {
       });
 
       setAccessToken(data.access_token);
-      router.replace("/dashboard");
-    } catch (err: any) {
+      router.replace(redirectTo);
+    } catch (err: unknown) {
       const msg =
-        err?.message ||
-        err?.data?.message ||
-        "Invalid credentials. Please try again.";
-      setError(String(msg));
+        err instanceof Error
+          ? err.message
+          : "Invalid credentials. Please try again.";
+      setError(msg);
       console.error(err);
     } finally {
       setSubmitting(false);
