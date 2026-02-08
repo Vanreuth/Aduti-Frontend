@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
   TrendingUp,
@@ -12,7 +11,6 @@ import {
   DollarSign,
   Activity,
   BarChart3,
-  PieChart,
   Download,
   Filter,
   Calendar,
@@ -60,19 +58,9 @@ const metrics = [
   },
 ];
 
-const topSources = [
-  { name: "Organic Search", value: 45, count: "4,521" },
-  { name: "Direct Traffic", value: 30, count: "3,012" },
-  { name: "Social Media", value: 15, count: "1,508" },
-  { name: "Email Campaign", value: 10, count: "1,005" },
-];
 
-const topPages = [
-  { page: "/dashboard", views: "12,453", bounce: "24%", time: "3:42" },
-  { page: "/analytics", views: "8,921", bounce: "18%", time: "4:15" },
-  { page: "/projects", views: "6,782", bounce: "32%", time: "2:38" },
-  { page: "/settings", views: "4,321", bounce: "28%", time: "2:12" },
-];
+
+
 export default function AnalyticsPage() {
   const { accessToken, loading } = useAuth();
   const router = useRouter();
@@ -178,7 +166,7 @@ export default function AnalyticsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border-2 border-dashed border-gray-200">
+                  <div className="h-75 flex items-center justify-center bg-linear-to-br from-blue-50 to-purple-50 rounded-lg border-2 border-dashed border-gray-200">
                     <div className="text-center">
                       <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm font-medium text-muted-foreground">
@@ -204,7 +192,7 @@ export default function AnalyticsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] flex items-center justify-center bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-200">
+                  <div className="h-75 flex items-center justify-center bg-linear-to-br from-emerald-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-200">
                     <div className="text-center">
                       <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm font-medium text-muted-foreground">
@@ -230,7 +218,7 @@ export default function AnalyticsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-gray-200">
+                  <div className="h-75 flex items-center justify-center bg-linear-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-gray-200">
                     <div className="text-center">
                       <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm font-medium text-muted-foreground">
@@ -247,59 +235,7 @@ export default function AnalyticsPage() {
           </Tabs>
         </div>
 
-        <div className="space-y-6">
-          {/* Traffic Sources */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Traffic Sources
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {topSources.map((source) => (
-                <div key={source.name} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{source.name}</span>
-                    <span className="text-muted-foreground">
-                      {source.count}
-                    </span>
-                  </div>
-                  <Progress value={source.value} className="h-2" />
-                  <div className="text-right text-xs text-muted-foreground">
-                    {source.value}%
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Top Pages */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Pages</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {topPages.map((page) => (
-                  <div
-                    key={page.page}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{page.page}</p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                        <span>{page.views} views</span>
-                        <span>{page.bounce} bounce</span>
-                        <span>{page.time} avg</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        
       </div>
     </div>
   );

@@ -8,18 +8,8 @@ import {
   Settings,
   Users,
   BarChart3,
-  FolderKanban,
-  FileText,
-  Calendar,
-  Database,
-  MessageSquare,
-  Shield,
-  HelpCircle,
-  LogIn,
-  AlertCircle,
   LogOut,
   ChevronDown,
-  Package,
 } from "lucide-react";
 
 import {
@@ -80,52 +70,7 @@ const sidebarGroups: { title: string; items: SidebarItem[] }[] = [
         badge: "12",
         badgeVariant: "secondary",
       },
-      {
-        title: "Products",
-        href: "/dashboard/products",
-        icon: Package,
-        children: [
-          { title: "All Products", href: "/dashboard/products" },
-          { title: "Add Product", href: "/dashboard/products/add-product" },
-          { title: "Edit Product", href: "/dashboard/products/edit-product" },
-          {
-            title: "Delete Product",
-            href: "/dashboard/products/delete-product",
-          },
-        ],
-      },
-      { title: "Projects", href: "/dashboard/projects", icon: FolderKanban },
-      { title: "Documents", href: "/dashboard/documents", icon: FileText },
-      {
-        title: "Calendar",
-        href: "/dashboard/calendar",
-        icon: Calendar,
-        badge: "3",
-        badgeVariant: "secondary",
-      },
-      { title: "Auth Pages", href: "/dashboard/auth", icon: LogIn },
-      { title: "Error Pages", href: "/dashboard/errors", icon: AlertCircle },
-    ],
-  },
-  {
-    title: "Others",
-    items: [
-      {
-        title: "Messages",
-        href: "/dashboard/messages",
-        icon: MessageSquare,
-        badge: "5",
-        badgeVariant: "secondary",
-      },
-      { title: "Database", href: "/dashboard/database", icon: Database },
-      {
-        title: "Security",
-        href: "/dashboard/security",
-        icon: Shield,
-        badge: "!",
-        badgeVariant: "destructive",
-      },
-      { title: "Help", href: "/dashboard/help", icon: HelpCircle },
+
     ],
   },
 ];

@@ -17,7 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import React, { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { generateBreadcrumbs } from "@/lib/breadcrumb-uttils";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
@@ -131,7 +131,7 @@ export default function DashboardLayout({
         } as React.CSSProperties
       }
     >
-      <div className="flex h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="flex h-screen w-full bg-linear-to-br from-background via-background to-muted/20">
         <AppSidebar />
         <MainLayout>{children}</MainLayout>
       </div>
