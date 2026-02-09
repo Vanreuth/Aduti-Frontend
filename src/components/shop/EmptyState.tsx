@@ -1,23 +1,17 @@
 "use client";
-import { Search } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
-interface EmptyStateProps {
-  onClearFilters: () => void;
-}
-
-export function EmptyState({ onClearFilters }: EmptyStateProps) {
+export function EmptyState({ onClearFilters }: { onClearFilters: () => void }) {
   return (
-    <div className="text-center py-20">
-      <Search className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-      <h3 className="text-xl font-semibold text-zinc-900 mb-2">
-        No products found
-      </h3>
-      <p className="text-zinc-600 mb-6">
-        Try adjusting your search or filter to find what you&apos;re looking
-        for.
+    <div className="bg-white rounded-2xl border border-zinc-100 p-10 text-center shadow-sm">
+      <p className="text-lg font-semibold text-zinc-900">No products found</p>
+      <p className="text-sm text-zinc-600 mt-2">
+        Try another search or clear filters to see more products.
       </p>
-      <Button onClick={onClearFilters}>Clear All Filters</Button>
+      <Button className="mt-6 rounded-xl" onClick={onClearFilters}>
+        Clear all filters
+      </Button>
     </div>
   );
 }
