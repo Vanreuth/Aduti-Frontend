@@ -21,27 +21,11 @@ const LANGUAGES = {
   },
 };
 
-const CURRENCIES = {
-  USD: { 
-    code: "USD", 
-    symbol: "$", 
-    flag: "🇺🇸",
-    flagImg: "/en.png"
-  },
-  KHR: { 
-    code: "KHR", 
-    symbol: "៛", 
-    flag: "🇰🇭",
-    flagImg: "/kh.png"
-  },
-};
 
 export default function TopBar() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [language, setLanguage] = useState<"EN" | "KH">("EN");
-  const [currency, setCurrency] = useState<"USD" | "KHR">("USD");
-
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -50,14 +34,10 @@ export default function TopBar() {
     setLanguage(prev => prev === "EN" ? "KH" : "EN");
   };
 
-  const toggleCurrency = () => {
-    setCurrency(prev => prev === "USD" ? "KHR" : "USD");
-  };
 
   if (!mounted) return null;
 
   const currentLang = LANGUAGES[language];
-  const currentCurr = CURRENCIES[currency];
 
   return (
     <div className="bg-gray-900  border-b border-gray-100">
@@ -80,13 +60,6 @@ export default function TopBar() {
 
           {/* Right Section - User Actions */}
           <div className="flex items-center gap-3 ml-auto text-xs">
-            {/* Track Order */}
-            <Link 
-              href="/track-order" 
-              className="hidden sm:block text-white hover:text-blue-900 transition-colors"
-            >
-              Track Order
-            </Link>
 
             {/* Help Center */}
             <Link 
@@ -125,25 +98,6 @@ export default function TopBar() {
                 unoptimized
               />
               <span className="font-medium">{currentLang.code}</span>
-              <RefreshCw className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
-
-            {/* Currency Toggle */}
-            <button
-              onClick={toggleCurrency}
-              className="flex items-center gap-1.5 text-white hover:text-blue-900 transition-all py-1 px-2 rounded hover:bg-gray-50 group"
-              title={`Switch to ${currency === "USD" ? "Khmer Riel" : "US Dollar"}`}
-            >
-              <Image
-                src={currentCurr.flagImg}
-                alt={currentCurr.code}
-                width={16}
-                height={12}
-                className="object-cover rounded-sm"
-                unoptimized
-              />
-              <span className="font-medium text-xs">{currentCurr.symbol}</span>
-              <span className="font-medium">{currentCurr.code}</span>
               <RefreshCw className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           </div>

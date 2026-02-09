@@ -23,8 +23,7 @@ import { WishlistSheet } from "./navbar/WishlistSheet";
 import { CartSheet } from "./navbar/CartSheet";
 import { SearchDialog } from "./navbar/SearchDialog";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProfile } from "@/lib/firebase/user";
-import { UserProfile } from "@/types/user";
+import { type MeResponse, getMe } from "@/lib/api/auth";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
@@ -38,48 +37,41 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { user, accessToken, logout } = useAuth();
+  const [profile, setProfile] = useState<MeResponse | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadProfile = async () => {
-      if (!user) {
-        if (isMounted) {
-          setProfile(null);
-        }
+      if (!accessToken) {
+        if (isMounted) setProfile(null);
         return;
       }
 
       try {
-        const data = await getUserProfile(user.uid);
-        if (isMounted) {
-          setProfile(data);
-        }
+        const data = await getMe(accessToken); // ✅ use getMe
+        if (isMounted) setProfile(data);
       } catch (error) {
         console.error("Error loading user profile:", error);
-        if (isMounted) {
-          setProfile(null);
-        }
+        if (isMounted) setProfile(null);
       }
     };
 
-    void loadProfile();
+    loadProfile();
 
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [accessToken]);
 
   const go = (href: string) => {
     if (href === pathname) return;
 
     startTransition(() => {
-      router.push(href); // push normally
+      router.push(href);
     });
 
-    // ✅ Force top AFTER navigation starts (works even with persistent layouts)
     requestAnimationFrame(() => {
       window.scrollTo({
         top: 0,
@@ -87,7 +79,7 @@ export default function Navbar() {
         behavior: "instant" as ScrollBehavior,
       });
     });
-    // Fallback for some browsers/layouts
+
     setTimeout(() => {
       window.scrollTo({
         top: 0,
@@ -98,13 +90,13 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    router.push("/login");
+    logout();
   };
 
-  const displayName = profile?.displayName || user?.displayName || "Guest";
+  const displayName = profile?.username || user?.username || "Guest";
   const email = profile?.email || user?.email || "";
-  const avatarUrl = profile?.photoURL || user?.photoURL || "";
+  const avatarUrl = profile?.photo || "/default-avatar.png";
+
   const initials =
     displayName
       .split(" ")
@@ -154,7 +146,6 @@ export default function Navbar() {
             <div className="relative flex items-center gap-1">
               {NAV_LINKS.map((link) => {
                 const active = pathname === link.href;
-
                 return (
                   <button
                     key={link.href}
@@ -249,7 +240,12 @@ export default function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild variant="ghost" size="icon" className="rounded-full">
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+              >
                 <Link href="/login" aria-label="Sign in">
                   <User className="h-5 w-5" />
                 </Link>

@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo, Suspense, useEffect } from "react";
+
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Filter, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,10 @@ import {
   EmptyState,
   priceRanges,
 } from "@/components/shop";
-import { getAllProducts } from "@/lib/firebase/products";
-import { Product } from "@/types/product";
+
+import type { Category, Product, ProductListData } from "@/types/api";
+import { getAllCategories } from "@/lib/api/category";
+import { getAllProducts } from "@/lib/api/product";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, fadeUpItem } from "@/lib/utils";
@@ -29,10 +32,8 @@ function SearchContent() {
   const searchQuery = searchParams.get("search") || "";
   const filterParam = searchParams.get("filter") || "";
 
-  // Function to clear search from URL
   const clearSearch = () => {
     setLocalQuery("");
-    // Remove search param from URL if it exists
     if (searchQuery) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("search");
@@ -41,12 +42,6 @@ function SearchContent() {
     }
   };
 
-  // Firebase state
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Derive initial sort from URL param
   const initialSortBy = useMemo(() => {
     if (filterParam === "new") return "newest";
     if (filterParam === "sale") return "sale";
@@ -54,116 +49,154 @@ function SearchContent() {
     return "featured";
   }, [filterParam]);
 
-  // Local state
+  // Data states
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [pageData, setPageData] = useState<ProductListData>({
+    products: [],
+    pageNumber: 0,
+    pageSize: 12,
+    totalElements: 0,
+    totalPages: 1,
+    last: true,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // UI states
   const [localQuery, setLocalQuery] = useState("");
-  const [category, setCategory] = useState("All");
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>("all");
   const [priceRange, setPriceRange] = useState(0);
   const [sortBy, setSortBy] = useState(initialSortBy);
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
-  // Fetch products from Firebase on mount
+  // Fetch categories + products
   useEffect(() => {
-    fetchProducts();
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [cats, products] = await Promise.all([
+          getAllCategories(),
+          getAllProducts({ page: 0, size: 100 }), // load more for client filtering
+        ]);
+
+        if (!mounted) return;
+
+        // Only active categories
+        setCategories(cats.filter((c) => c.isActive));
+        setPageData(products);
+      } catch (e: any) {
+        if (mounted) setError(e?.message ?? "Failed to load shop data");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const products = await getAllProducts();
-      setAllProducts(products);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Combine URL search with local query
   const activeQuery = localQuery || searchQuery;
 
-  // Filter products
-  let filteredProducts = allProducts.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(activeQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(activeQuery.toLowerCase());
+  // Map categories to FilterSidebar format (strings)
+  // FilterSidebar in your code expects `category` string like "All" / "Shoes"
+  const categoryNameFromSlug = useMemo(() => {
+    if (selectedCategorySlug === "all") return "All";
+    const found = categories.find((c) => c.slug === selectedCategorySlug);
+    return found?.name ?? "All";
+  }, [selectedCategorySlug, categories]);
+
+  const allProducts: Product[] = pageData.products;
+
+  // Filter + search
+  let filteredProducts = allProducts.filter((p) => {
+    const name = (p.name ?? "").toLowerCase();
+    const catName = (p.category?.name ?? "").toLowerCase();
+    const catSlug = (p.category?.slug ?? "").toLowerCase();
+
+    const q = activeQuery.trim().toLowerCase();
+    const matchesSearch = !q || name.includes(q) || catName.includes(q);
 
     const matchesCategory =
-      category === "All" ||
-      product.category.toLowerCase() === category.toLowerCase();
+      selectedCategorySlug === "all" || catSlug === selectedCategorySlug.toLowerCase();
 
+    const price = Number(p.price ?? 0);
     const matchesPrice =
-      product.price >= priceRanges[priceRange].min &&
-      product.price <= priceRanges[priceRange].max;
+      price >= priceRanges[priceRange].min &&
+      price <= priceRanges[priceRange].max;
 
     return matchesSearch && matchesCategory && matchesPrice;
   });
 
-  // Sort products
+  // Sorting
   if (sortBy === "price-low") {
     filteredProducts = [...filteredProducts].sort((a, b) => a.price - b.price);
   } else if (sortBy === "price-high") {
     filteredProducts = [...filteredProducts].sort((a, b) => b.price - a.price);
-  } else if (sortBy === "rating") {
-    filteredProducts = [...filteredProducts].sort(
-      (a, b) => b.rating - a.rating
-    );
   } else if (sortBy === "newest") {
-    filteredProducts = [...filteredProducts]
-      .filter((p) => p.isNew)
-      .concat(filteredProducts.filter((p) => !p.isNew));
-  } else if (sortBy === "sale") {
-    filteredProducts = [...filteredProducts]
-      .filter((p) => p.isSale)
-      .concat(filteredProducts.filter((p) => !p.isSale));
+    filteredProducts = [...filteredProducts].sort((a, b) => {
+      const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return db - da;
+    });
   }
 
-  const toggleWishlist = (id: string) => {
-    const newWishlist = new Set(wishlist);
-    if (newWishlist.has(id)) newWishlist.delete(id);
-    else newWishlist.add(id);
-    setWishlist(newWishlist);
-  };
-
   const handleReset = () => {
-    setCategory("All");
+    setSelectedCategorySlug("all");
     setPriceRange(0);
     setSortBy("featured");
   };
 
   const handleClearAll = () => {
     setLocalQuery("");
-    setCategory("All");
+    setSelectedCategorySlug("all");
     setPriceRange(0);
   };
 
-  // Loading state
+  const gridKey = `${activeQuery}|${selectedCategorySlug}|${priceRange}|${sortBy}|${filteredProducts.length}`;
+
+  // ✅ Hook FilterSidebar to backend categories
+  // If your FilterSidebar ONLY supports fixed categories internally,
+  // update it to accept `categories` prop.
+  const categoryOptions = useMemo(() => {
+    return ["All", ...categories.map((c) => c.name)];
+  }, [categories]);
+
+  // When FilterSidebar gives you name, convert to slug
+  const onCategoryChangeByName = (name: string) => {
+    if (name === "All") {
+      setSelectedCategorySlug("all");
+      return;
+    }
+    const found = categories.find((c) => c.name === name);
+    setSelectedCategorySlug(found?.slug ?? "all");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900 mx-auto mb-4"></div>
-          <p className="text-zinc-600">Loading products...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900" />
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchProducts}>Try Again</Button>
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
+        <div className="bg-white p-6 rounded-2xl shadow-sm max-w-md w-full">
+          <p className="font-semibold text-zinc-900">Failed to load shop</p>
+          <p className="text-sm text-zinc-600 mt-2">{error}</p>
+          <Button className="mt-4 w-full" onClick={() => location.reload()}>
+            Retry
+          </Button>
         </div>
       </div>
     );
   }
-
-  // ✅ key to animate grid when filters change
-  const gridKey = `${activeQuery}|${category}|${priceRange}|${sortBy}|${filteredProducts.length}`;
 
   return (
     <motion.div
@@ -172,7 +205,6 @@ function SearchContent() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Header (animated in) */}
       <motion.div variants={fadeUpItem} initial="hidden" animate="show">
         <SearchHeader
           query={activeQuery}
@@ -198,12 +230,15 @@ function SearchContent() {
                 <Filter className="w-5 h-5" />
                 Filters
               </h2>
+
               <FilterSidebar
-                category={category}
+                category={categoryNameFromSlug}
                 priceRange={priceRange}
-                onCategoryChange={setCategory}
+                onCategoryChange={onCategoryChangeByName}
                 onPriceRangeChange={setPriceRange}
                 onReset={handleReset}
+                // ✅ If your FilterSidebar supports it, pass options:
+                // categories={categoryOptions}
               />
             </motion.div>
           </aside>
@@ -214,18 +249,10 @@ function SearchContent() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 120,
-                  damping: 18,
-                  mass: 1.1,
-                }}
+                transition={{ type: "spring", stiffness: 120, damping: 18, mass: 1.1 }}
                 className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
               >
-                <Button
-                  variant="outline"
-                  className="shadow-lg rounded-full px-6 bg-white/90 backdrop-blur"
-                >
+                <Button variant="outline" className="shadow-lg rounded-full px-6 bg-white/90 backdrop-blur">
                   <SlidersHorizontal className="w-4 h-4 mr-2" />
                   Filters
                 </Button>
@@ -239,13 +266,15 @@ function SearchContent() {
                   Filters
                 </SheetTitle>
               </SheetHeader>
+
               <div className="mt-6">
                 <FilterSidebar
-                  category={category}
+                  category={categoryNameFromSlug}
                   priceRange={priceRange}
-                  onCategoryChange={setCategory}
+                  onCategoryChange={onCategoryChangeByName}
                   onPriceRangeChange={setPriceRange}
                   onReset={handleReset}
+                  // categories={categoryOptions}
                 />
               </div>
             </SheetContent>
@@ -299,7 +328,7 @@ export default function ShopPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900" />
         </div>
       }
     >

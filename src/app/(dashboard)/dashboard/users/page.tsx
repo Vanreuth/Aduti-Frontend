@@ -50,7 +50,7 @@ import {
   deleteUserProfile,
   listUsers,
   updateUserProfile,
-} from "@/lib/firebase/user";
+} from "@/lib/api/user";
 import { UserProfile } from "@/types/user";
 
 type UserRow = UserProfile & { status: "Active" | "Inactive" };
@@ -87,7 +87,7 @@ export default function UserDataTable() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<"all" | UserProfile["role"]>(
-    "all"
+    "all",
   );
   const [statusFilter, setStatusFilter] = useState<
     "all" | "Active" | "Inactive"
@@ -149,8 +149,7 @@ export default function UserDataTable() {
         phone.includes(searchTerm);
 
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      const matchesStatus =
-        statusFilter === "all" || status === statusFilter;
+      const matchesStatus = statusFilter === "all" || status === statusFilter;
 
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -264,7 +263,7 @@ export default function UserDataTable() {
   };
 
   const getRoleBadgeVariant = (
-    role: UserProfile["role"]
+    role: UserProfile["role"],
   ): "default" | "secondary" | "outline" => {
     if (role === "admin") return "default";
     if (role === "editor") return "secondary";
@@ -589,8 +588,8 @@ export default function UserDataTable() {
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete{" "}
-              <strong>{selectedUser?.displayName}</strong>? This action cannot be
-              undone.
+              <strong>{selectedUser?.displayName}</strong>? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

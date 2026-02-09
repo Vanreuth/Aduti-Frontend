@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import { db } from "@/lib/api/config";
 import {
   Plus,
   Upload,
@@ -102,7 +102,7 @@ export default function AdminProductManager() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
@@ -203,7 +203,7 @@ export default function AdminProductManager() {
       }
 
       setStatus(
-        `✅ All ${presetProducts.length} products migrated successfully!`
+        `✅ All ${presetProducts.length} products migrated successfully!`,
       );
     } catch (error) {
       setStatus("❌ Migration failed. Check console.");
@@ -224,8 +224,8 @@ export default function AdminProductManager() {
               status.includes("✅")
                 ? "border-green-200 bg-green-50 text-green-800"
                 : status.includes("❌")
-                ? "border-red-200 bg-red-50 text-red-800"
-                : "border-blue-200 bg-blue-50 text-blue-800"
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-blue-200 bg-blue-50 text-blue-800",
             )}
           >
             {status}

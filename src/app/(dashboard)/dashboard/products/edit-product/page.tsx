@@ -9,7 +9,6 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 import { Save, Trash2, RefreshCw, PackageSearch } from "lucide-react";
 import { Product, ProductForm } from "@/types/product";
 
@@ -126,7 +125,7 @@ export default function Page() {
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target as any;
     if (type === "checkbox") {
@@ -145,62 +144,6 @@ export default function Page() {
 
     setSaving(true);
     setStatus("Saving changes...");
-
-    try {
-      const ref = doc(db, "products", form.id);
-
-      const price = Number(form.price);
-      const originalPrice =
-        form.originalPrice.trim() !== ""
-          ? Number(form.originalPrice)
-          : undefined;
-
-      await updateDoc(ref, {
-        name: form.name.trim(),
-        price,
-        originalPrice,
-        image: form.image.trim(),
-        category: form.category,
-        rating: Number(form.rating),
-        reviews: Number(form.reviews),
-        stock: Number(form.stock),
-        description: form.description.trim(),
-        isSale: form.isSale,
-        isNew: form.isNew,
-        featured: form.isSale || form.isNew,
-        updatedAt: serverTimestamp(),
-      });
-
-      setStatus("✅ Updated successfully!");
-
-      // update local list too
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === form.id
-            ? {
-                ...p,
-                name: form.name.trim(),
-                price,
-                originalPrice,
-                image: form.image.trim(),
-                category: form.category,
-                rating: Number(form.rating),
-                reviews: Number(form.reviews),
-                stock: Number(form.stock),
-                description: form.description.trim(),
-                isSale: form.isSale,
-                isNew: form.isNew,
-                featured: form.isSale || form.isNew,
-              }
-            : p
-        )
-      );
-    } catch (e) {
-      console.error(e);
-      setStatus("❌ Update failed. Check console.");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleDelete = async () => {
@@ -250,8 +193,8 @@ export default function Page() {
             status.includes("✅")
               ? "border-green-200 bg-green-50 text-green-800"
               : status.includes("❌")
-              ? "border-red-200 bg-red-50 text-red-800"
-              : "border-blue-200 bg-blue-50 text-blue-800"
+                ? "border-red-200 bg-red-50 text-red-800"
+                : "border-blue-200 bg-blue-50 text-blue-800"
           }`}
         >
           {status}

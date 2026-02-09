@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Bell, Search, Command, SunIcon, MoonIcon } from "lucide-react";
+
+import { useMemo } from "react";
+import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,62 +18,48 @@ import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { ThemeSwitcher } from "./theme-switcher";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProfile } from "@/lib/firebase/user";
-import { UserProfile } from "@/types/user";
+import { decodeJwtPayload } from "@/lib/jwt";
+
+type JwtPayload = {
+  sub?: string; // often email/username
+  email?: string;
+  username?: string;
+  name?: string;
+  picture?: string;
+  photo?: string;
+  photoURL?: string;
+};
+
+function getInitials(name: string) {
+  const n = name.trim();
+  if (!n) return "U";
+  return n
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
+}
 
 export function Topbar() {
-  const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { user, logout } = useAuth();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async () => {
-      if (!user) {
-        if (isMounted) {
-          setProfile(null);
-        }
-        return;
-      }
-
-      try {
-        const data = await getUserProfile(user.uid);
-        if (isMounted) {
-          setProfile(data);
-        }
-      } catch (error) {
-        console.error("Error loading user profile:", error);
-        if (isMounted) {
-          setProfile(null);
-        }
-      }
-    };
-
-    void loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
-
-  const displayName =
-    profile?.displayName || user?.displayName || "Guest User";
-  const email = profile?.email || user?.email || "guest@example.com";
-  const avatarUrl = profile?.photoURL || user?.photoURL || "";
+  const displayName = user?.username ?? "Guest";
+  const email = user?.email ?? "guest@example.com";
+  const avatarUrl = user?.photo ?? "";
   const initials =
     displayName
       .split(" ")
       .filter(Boolean)
-      .map((part) => part[0])
+      .map((p) => p[0])
       .join("")
-      .slice(0, 2) || "GU";
-
+      .slice(0, 2)
+      .toUpperCase() || "GU";
   return (
     <div className="flex items-center justify-between gap-4">
-      {/* Search Bar */}
       <div className="flex items-center max-w-md flex-1">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search anything"
@@ -81,18 +68,11 @@ export function Topbar() {
         </div>
       </div>
 
-      {/* Right Section */}
       <div className="flex items-center gap-3">
-        {/* App Switcher */}
         <AppSwitcher />
-
-        {/* Theme Switcher */}
         <ThemeSwitcher />
-
-        {/* Theme Toggle */}
         <ThemeToggle />
 
-        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -116,57 +96,10 @@ export function Topbar() {
                 </Badge>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="max-h-80 overflow-y-auto">
-              <DropdownMenuItem className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">New user registered</p>
-                    <p className="text-xs text-muted-foreground">
-                      John Doe joined your team
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      2 minutes ago
-                    </p>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">Project completed</p>
-                    <p className="text-xs text-muted-foreground">
-                      Website redesign is ready for review
-                    </p>
-                    <p className="text-xs text-muted-foreground">1 hour ago</p>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500 mt-2" />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">System update</p>
-                    <p className="text-xs text-muted-foreground">
-                      New features available
-                    </p>
-                    <p className="text-xs text-muted-foreground">3 hours ago</p>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="p-3 cursor-pointer text-center justify-center hover:bg-muted/50 transition-colors">
-              <span className="text-sm text-primary">
-                View all notifications
-              </span>
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Profile */}
+        {/* ✅ Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -181,6 +114,7 @@ export function Topbar() {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
             <DropdownMenuLabel className="font-normal p-3">
               <div className="flex items-center gap-3">
@@ -200,22 +134,21 @@ export function Topbar() {
                 </div>
               </div>
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuItem className="p-3 cursor-pointer hover:bg-muted/50 rounded-md transition-colors">
-              <span className="flex items-center gap-2">👤 Profile</span>
+              👤 Profile
             </DropdownMenuItem>
             <DropdownMenuItem className="p-3 cursor-pointer hover:bg-muted/50 rounded-md transition-colors">
-              <span className="flex items-center gap-2">⚙️ Settings</span>
+              ⚙️ Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="p-3 cursor-pointer hover:bg-muted/50 rounded-md transition-colors">
-              <span className="flex items-center gap-2">💳 Billing</span>
-            </DropdownMenuItem>
+
             <DropdownMenuSeparator className="my-2" />
             <DropdownMenuItem
               className="p-3 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive rounded-md transition-colors"
-              onClick={() => void signOut()}
+              onClick={() => void logout()}
             >
-              <span className="flex items-center gap-2">🚪 Log out</span>
+              🚪 Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

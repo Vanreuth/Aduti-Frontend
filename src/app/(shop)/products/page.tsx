@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllProducts, getProductsByCategory } from "@/lib/firebase/products";
+import { getAllProducts, getProductsByCategory } from "@/lib/api/product";
 import { Product } from "@/types/product";
 import { ProductCard } from "@/components/shop/ProductCard";
 

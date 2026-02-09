@@ -114,8 +114,8 @@ export function CartSheet() {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => router.push("/cart")}>
-                  View Cart
+                <Button variant="outline" onClick={() => router.push("/shop")}>
+                  Continue Shopping
                 </Button>
                 <Button
                   className="bg-zinc-900 hover:bg-zinc-800"

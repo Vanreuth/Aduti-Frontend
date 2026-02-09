@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/types/product";
-import { getAllProducts } from "@/lib/firebase/products";
+import type { Product, Category } from "@/types/api"; // <-- use backend types
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { useWishlist } from "@/context/WishlistContext";
@@ -13,61 +12,77 @@ import { ProductCard } from "../shop/ProductCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, fadeUpItem } from "@/lib/utils";
 
-const tabs = [
-  { id: "all", label: "All Products" },
-  { id: "women", label: "Women" },
-  { id: "men", label: "Men" },
-  { id: "bag", label: "Bags" },
-  { id: "shoes", label: "Shoes" },
-  { id: "watches", label: "Watches" },
-] as const;
+import { getAllProducts } from "@/lib/api/product";
+import { getAllCategories } from "@/lib/api/category";
+
+type Tab = { id: string; label: string }; // id will be category.slug (or "all")
 
 export default function ProductOverview() {
-  const [activeTab, setActiveTab] =
-    useState<(typeof tabs)[number]["id"]>("all");
+  const [activeTab, setActiveTab] = useState<string>("all");
 
-  // Firebase state~
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Contexts (single source of truth)
+  // Contexts
   const { addItem } = useCart();
   const { items: wishlistItems, add, remove } = useWishlist();
 
-  // Fetch products
-  useEffect(() => {
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ✅ Build tabs from backend categories
+  const tabs: Tab[] = useMemo(() => {
+    const activeCats = categories.filter((c) => c.isActive);
+    return [{ id: "all", label: "All Products" }].concat(
+      activeCats.map((c) => ({
+        id: c.slug, // IMPORTANT: use slug for filtering
+        label: c.name,
+      })),
+    );
+  }, [categories]);
 
-  const fetchProducts = async () => {
+  // ✅ Fetch categories + products
+  const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedProducts = await getAllProducts();
-      setProducts(fetchedProducts);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products. Please try again later.");
+
+      const [cats, productData] = await Promise.all([
+        getAllCategories(),
+        getAllProducts({ page: 0, size: 20, sortBy: "id", direction: "DESC" }), // overview show 20
+      ]);
+
+      setCategories(cats);
+      setProducts(productData.products ?? []);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load products");
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter products by tab
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // ✅ Filter by tab (slug)
   const filteredProducts = useMemo(() => {
     if (activeTab === "all") return products;
-    return products.filter((p) => String(p.category) === String(activeTab));
+    return products.filter(
+      (p) => (p.category?.slug ?? "").toLowerCase() === activeTab.toLowerCase(),
+    );
   }, [activeTab, products]);
 
-  // Add to cart (same pattern as your ProductCard)
+  // Add to cart
   const handleAddToCart = (product: Product) => {
+    const thumbnail =
+      product.variants?.[0]?.images?.[0]?.imageUrl ?? "/placeholder.png";
+
     addItem({
       id: String(product.id),
       name: product.name,
       price: product.price,
-      image: product.image,
+      image: thumbnail, // backend image is inside variants.images
     });
 
     toast.success("Added to cart 🛒", {
@@ -77,8 +92,11 @@ export default function ProductOverview() {
 
   const toggleWishlist = (product: Product) => {
     const exists = wishlistItems.some(
-      (i) => String(i.id) === String(product.id)
+      (i) => String(i.id) === String(product.id),
     );
+
+    const thumbnail =
+      product.variants?.[0]?.images?.[0]?.imageUrl ?? "/placeholder.png";
 
     if (exists) {
       remove(String(product.id));
@@ -88,69 +106,55 @@ export default function ProductOverview() {
         id: String(product.id),
         name: product.name,
         price: product.price,
-        image: product.image,
+        image: thumbnail,
       });
       toast("Added to wishlist ❤️", { description: "Saved for later." });
     }
   };
 
-  // Loading
+  // Loading UI
   if (loading) {
     return (
       <div className="container-app">
         <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
-                Product Overview
-              </h2>
-              <p className="text-zinc-600 max-w-2xl mx-auto">
-                Discover our curated collection of premium products
-              </p>
-            </div>
-            <div className="flex justify-center items-center py-20">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-zinc-900 mx-auto mb-4" />
-                <p className="text-zinc-600">Loading products...</p>
-              </div>
-            </div>
+          <div className="max-w-7xl mx-auto text-center">
+            <p className="text-zinc-600">Loading products...</p>
           </div>
         </section>
       </div>
     );
   }
 
-  // Error
+  // Error UI
   if (error) {
     return (
       <div className="container-app">
         <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={fetchProducts}>Try Again</Button>
-            </div>
+          <div className="max-w-7xl mx-auto text-center">
+            <h2 className="text-2xl font-bold text-zinc-900 mb-3">
+              Product Overview
+            </h2>
+            <p className="text-zinc-600 mb-6">{error}</p>
+            <Button onClick={loadData}>Refresh</Button>
           </div>
         </section>
       </div>
     );
   }
 
-  // Empty
+  // Empty UI
   if (products.length === 0) {
     return (
       <div className="container-app">
         <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
-                Product Overview
-              </h2>
-              <p className="text-zinc-600 max-w-2xl mx-auto mb-8">
-                No products available yet. Check back soon!
-              </p>
-              <Button onClick={fetchProducts}>Refresh</Button>
-            </div>
+          <div className="max-w-7xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
+              Product Overview
+            </h2>
+            <p className="text-zinc-600 max-w-2xl mx-auto mb-8">
+              No products available yet. Check back soon!
+            </p>
+            <Button onClick={loadData}>Refresh</Button>
           </div>
         </section>
       </div>
@@ -161,14 +165,12 @@ export default function ProductOverview() {
     <div className="container-app">
       <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* Entrance for whole section */}
           <motion.div
             variants={staggerContainer}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, amount: 0.2 }}
           >
-            {/* Header */}
             <motion.div variants={fadeUpItem} className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-4">
                 Product Overview
@@ -179,7 +181,7 @@ export default function ProductOverview() {
               </p>
             </motion.div>
 
-            {/* Category Tabs */}
+            {/* Tabs */}
             <motion.div
               variants={fadeUpItem}
               className="flex justify-center mb-10"
@@ -199,7 +201,6 @@ export default function ProductOverview() {
                           : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200",
                       ].join(" ")}
                     >
-                      {/* Animated pill */}
                       {active && (
                         <motion.span
                           layoutId="product-tabs-pill"
@@ -219,7 +220,7 @@ export default function ProductOverview() {
               </div>
             </motion.div>
 
-            {/* Products Grid */}
+            {/* Grid */}
             {filteredProducts.length === 0 ? (
               <motion.div variants={fadeUpItem} className="text-center py-12">
                 <p className="text-zinc-600">
@@ -251,7 +252,6 @@ export default function ProductOverview() {
               </AnimatePresence>
             )}
 
-            {/* View All Button */}
             <motion.div variants={fadeUpItem} className="text-center mt-10">
               <Button
                 asChild

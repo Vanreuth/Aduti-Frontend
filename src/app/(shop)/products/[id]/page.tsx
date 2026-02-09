@@ -7,11 +7,13 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/shop/StarRating";
 import { Product } from "@/types/product";
-import { getAllProducts } from "@/lib/firebase/products";
+import { getAllProducts } from "@/lib/api/product";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const PLACEHOLDER_IMAGE = "/product/placeholder.svg";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -86,9 +88,9 @@ export default function ProductDetailPage() {
       <section className="max-w-7xl mx-auto px-4 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Image */}
-          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-zinc-100">
+          <div className="relative aspect-3/4 rounded-2xl overflow-hidden bg-zinc-100">
             <Image
-              src={product.image}
+              src={product.image || PLACEHOLDER_IMAGE}
               alt={product.name}
               fill
               priority
@@ -103,7 +105,7 @@ export default function ProductDetailPage() {
               <Heart
                 className={cn(
                   "h-5 w-5",
-                  isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400"
+                  isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400",
                 )}
               />
             </button>
