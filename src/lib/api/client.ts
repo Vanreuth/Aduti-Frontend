@@ -31,7 +31,7 @@ export async function apiFetch<T>(
   return data as T;
 }
 
-export async function request<T>(path: string): Promise<T> {
+export async function api<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status} - ${path}`);
   return res.json();

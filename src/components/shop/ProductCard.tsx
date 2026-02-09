@@ -4,8 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Heart, ShoppingCart, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StarRating } from "./StarRating";
-import { Product } from "@/types/product";
+import type { Product, ProductVariant, ProductImage } from "@/types/api";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
@@ -18,6 +17,20 @@ interface ProductCardProps {
   product: Product;
 }
 
+function getVariantImages(variants?: ProductVariant[]): ProductImage[] {
+  if (!variants?.length) return [];
+  return variants.flatMap((variant) => variant.images ?? []);
+}
+
+function getPrimaryImage(product: Product) {
+  const images = getVariantImages(product.variants);
+  return images[0]?.imageUrl ?? PLACEHOLDER_IMAGE;
+}
+
+function getUniqueList(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter(Boolean) as string[]));
+}
+
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { add, remove, has } = useWishlist();
@@ -25,13 +38,23 @@ export function ProductCard({ product }: ProductCardProps) {
   const [quickOpen, setQuickOpen] = useState(false);
 
   const isInWishlist = has(String(product.id));
+  const primaryImage = getPrimaryImage(product);
+  const sizes = getUniqueList(product.variants?.map((v) => v.size) ?? []);
+  const colors = getUniqueList(product.variants?.map((v) => v.color) ?? []);
+
+  const variantPrices = product.variants?.length
+    ? product.variants.map((v) => v.finalPrice ?? product.price)
+    : [product.price];
+  const minPrice = Math.min(...variantPrices);
+  const maxPrice = Math.max(...variantPrices);
+  const showPriceRange = minPrice !== maxPrice;
 
   const handleAddToCart = () => {
     addItem({
       id: String(product.id),
       name: product.name,
-      price: product.price,
-      image: product.image,
+      price: minPrice,
+      image: primaryImage,
     });
 
     toast.success("Added to cart 🛒", {
@@ -47,8 +70,8 @@ export function ProductCard({ product }: ProductCardProps) {
       add({
         id: String(product.id),
         name: product.name,
-        price: product.price,
-        image: product.image,
+        price: minPrice,
+        image: primaryImage,
       });
       toast.success("Added to wishlist ❤️", { description: "Saved for later" });
     }
@@ -63,7 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
           onClick={() => setQuickOpen(true)}
         >
           <Image
-            src={product.image || PLACEHOLDER_IMAGE}
+            src={primaryImage}
             alt={product.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -107,21 +130,62 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
 
-          <div className="flex items-center gap-2">
-            <StarRating rating={product.rating} />
-            <span className="text-xs text-zinc-500">({product.reviews})</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+            {product.brand ? <span>{product.brand}</span> : null}
+            {product.brand && product.category?.name ? (
+              <span className="text-zinc-300">•</span>
+            ) : null}
+            {product.category?.name ? <span>{product.category.name}</span> : null}
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-zinc-900">
-              ${product.price.toFixed(2)}
+              {showPriceRange
+                ? `$${minPrice.toFixed(2)} – $${maxPrice.toFixed(2)}`
+                : `$${minPrice.toFixed(2)}`}
             </span>
-            {product.originalPrice && (
-              <span className="text-sm text-zinc-400 line-through">
-                ${product.originalPrice.toFixed(2)}
-              </span>
-            )}
           </div>
+
+          {(sizes.length > 0 || colors.length > 0) && (
+            <div className="space-y-2">
+              {sizes.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-zinc-500">Sizes:</span>
+                  {sizes.slice(0, 4).map((size) => (
+                    <span
+                      key={size}
+                      className="px-2 py-0.5 text-xs rounded-full bg-zinc-100 text-zinc-700"
+                    >
+                      {size}
+                    </span>
+                  ))}
+                  {sizes.length > 4 ? (
+                    <span className="text-xs text-zinc-500">
+                      +{sizes.length - 4}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              {colors.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-zinc-500">Colors:</span>
+                  {colors.slice(0, 4).map((color) => (
+                    <span
+                      key={color}
+                      className="px-2 py-0.5 text-xs rounded-full bg-zinc-100 text-zinc-700"
+                    >
+                      {color}
+                    </span>
+                  ))}
+                  {colors.length > 4 ? (
+                    <span className="text-xs text-zinc-500">
+                      +{colors.length - 4}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">

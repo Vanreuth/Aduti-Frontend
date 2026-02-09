@@ -1,67 +1,95 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { categories, priceRanges } from "./data";
 
-interface FilterSidebarProps {
-  category: string;
-  priceRange: number;
-  onCategoryChange: (category: string) => void;
-  onPriceRangeChange: (index: number) => void;
-  onReset: () => void;
-}
+import type { PriceRange } from "./types";
+import { priceRanges as defaultPriceRanges } from "./priceRanges";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+
+type CategoryOption = { label: string; value: string };
 
 export function FilterSidebar({
-  category,
+  categories,
+  categorySlug,
   priceRange,
+  priceRanges = defaultPriceRanges,
   onCategoryChange,
   onPriceRangeChange,
   onReset,
-}: FilterSidebarProps) {
+}: {
+  categories?: CategoryOption[];
+  categorySlug?: string;
+  priceRange: number;
+  priceRanges?: PriceRange[];
+  onCategoryChange?: (slug: string) => void;
+  onPriceRangeChange: (index: number) => void;
+  onReset: () => void;
+}) {
+  const showCategories = Array.isArray(categories) && categories.length > 0;
   return (
     <div className="space-y-6">
-      {/* Categories */}
+      {/* Category */}
+      {showCategories ? (
+        <>
+          <div>
+            <Label className="text-sm font-medium text-zinc-900">Category</Label>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {categories.map((c) => {
+                const active = c.value === categorySlug;
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => onCategoryChange?.(c.value)}
+                    aria-pressed={active}
+                    className={[
+                      "px-3 py-2 rounded-xl border text-sm transition",
+                      active
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300",
+                    ].join(" ")}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Separator />
+        </>
+      ) : null}
+
+      {/* Price */}
       <div>
-        <h3 className="font-semibold text-zinc-900 mb-3">Categories</h3>
-        <div className="space-y-2">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => onCategoryChange(cat)}
-              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                category === cat
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <Label className="text-sm font-medium text-zinc-900">Price</Label>
+        <div className="mt-3 space-y-2">
+          {priceRanges.map((r, idx) => {
+            const active = idx === priceRange;
+            return (
+              <button
+                key={r.label}
+                type="button"
+                onClick={() => onPriceRangeChange(idx)}
+                aria-pressed={active}
+                className={[
+                  "w-full text-left px-3 py-2 rounded-xl border text-sm transition",
+                  active
+                    ? "border-zinc-900 bg-zinc-900 text-white"
+                    : "border-zinc-200 bg-white text-zinc-800 hover:border-zinc-300",
+                ].join(" ")}
+              >
+                {r.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Price Range */}
-      <div>
-        <h3 className="font-semibold text-zinc-900 mb-3">Price Range</h3>
-        <div className="space-y-2">
-          {priceRanges.map((range, index) => (
-            <button
-              key={range.label}
-              onClick={() => onPriceRangeChange(index)}
-              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                priceRange === index
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100"
-              }`}
-            >
-              {range.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Separator />
 
-      {/* Reset Filters */}
-      <Button variant="outline" className="w-full" onClick={onReset}>
-        Reset Filters
+      <Button variant="outline" className="w-full rounded-xl" onClick={onReset}>
+        Reset filters
       </Button>
     </div>
   );

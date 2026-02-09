@@ -1,7 +1,11 @@
 export { ProductCard } from "./ProductCard";
+export { ProductGrid, ProductGridSkeleton } from "./ProductGrid";
+export { FiltersPanel } from "./FiltersPanel";
+export { ShopLoading } from "./ShopLoading";
 export { FilterSidebar } from "./FilterSidebar";
 export { SearchHeader } from "./SearchHeader";
 export { StarRating } from "./StarRating";
 export { EmptyState } from "./EmptyState";
-export { allProducts, categories, priceRanges } from "./data";
-export type { Product, PriceRange } from "./types";
+export { priceRanges } from "./priceRanges";
+export type { PriceRange } from "./types";
+export { ShopContent } from "./shop";

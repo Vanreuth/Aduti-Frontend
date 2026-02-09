@@ -7,7 +7,7 @@ import type { Product, Category } from "@/types/api"; // <-- use backend types
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { useWishlist } from "@/context/WishlistContext";
-import { ProductCard } from "../shop/ProductCard";
+import { ProductGrid } from "../shop/ProductGrid";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, fadeUpItem } from "@/lib/utils";
@@ -15,7 +15,7 @@ import { staggerContainer, fadeUpItem } from "@/lib/utils";
 import { getAllProducts } from "@/lib/api/product";
 import { getAllCategories } from "@/lib/api/category";
 
-type Tab = { id: string; label: string }; // id will be category.slug (or "all")
+type Tab = { id: string; label: string };
 
 export default function ProductOverview() {
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -236,18 +236,11 @@ export default function ProductOverview() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <motion.div
-                    variants={staggerContainer}
-                    initial="hidden"
-                    animate="show"
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                  >
-                    {filteredProducts.map((product) => (
-                      <motion.div key={product.id} variants={fadeUpItem}>
-                        <ProductCard product={product} />
-                      </motion.div>
-                    ))}
-                  </motion.div>
+                  <ProductGrid
+                    products={filteredProducts}
+                    gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    animated
+                  />
                 </motion.div>
               </AnimatePresence>
             )}
