@@ -1,35 +1,23 @@
 ﻿import { apiFetch } from "./client";
 import type { UserProfile } from "@/types/user";
 
-// List all users
-export function listUsers() {
-  return apiFetch("/api/v1/users", { method: "GET" }) as Promise<UserProfile[]>;
-}
-
-// Create a new user profile (admin)
-export function createUserProfile(payload: Partial<UserProfile>) {
-  return apiFetch("/api/v1/users", {
+// register user
+export function register(payload: any) {
+  return apiFetch("/api/users/register", {
     method: "POST",
     body: JSON.stringify(payload),
-  }) as Promise<UserProfile>;
+  });
 }
 
-// Update user profile by id
-export function updateUserProfile(
-  id: number | string,
-  payload: Partial<UserProfile>,
-) {
-  return apiFetch(`/api/v1/users/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  }) as Promise<UserProfile>;
-}
-
-// Delete user profile by id
-export function deleteUserProfile(id: number | string) {
-  return apiFetch(`/api/v1/users/${id}`, {
-    method: "DELETE",
-  }) as Promise<void>;
+export function updateMe(payload: string, token: string) {
+  return apiFetch(
+    "/api/users/me",
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
 }
 
 export type ProfilePayload = {
@@ -38,23 +26,7 @@ export type ProfilePayload = {
   phoneNumber?: string;
 };
 
-// Password change only
 export type ChangePasswordPayload = {
   currentPassword: string;
   newPassword: string;
 };
-
-export function getProfile(accessToken: string) {
-  return apiFetch("/api/auth/profile", { method: "GET" }, accessToken);
-}
-
-export function updateProfile(accessToken: string, payload: ProfilePayload) {
-  return apiFetch(
-    "/api/auth/profile",
-    {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    },
-    accessToken,
-  );
-}

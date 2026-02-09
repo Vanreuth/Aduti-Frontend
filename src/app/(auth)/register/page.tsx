@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 // Icons
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
-import { register } from "@/lib/api/auth";
+import { register } from "@/lib/api/user";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -45,18 +45,20 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  function handleChange(e) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   }
 
-  function getStrengthColor(v) {
+  function getStrengthColor(v: any) {
     if (v < 40) return "bg-red-500/20";
     if (v < 80) return "bg-yellow-500/20";
     return "bg-emerald-500/20";
   }
 
-  async function handleSignup(e) {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 

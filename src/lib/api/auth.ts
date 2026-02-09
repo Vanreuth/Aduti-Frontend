@@ -1,16 +1,17 @@
 import { apiFetch } from "./client";
 
-export function register(payload: any) {
-  return apiFetch("/api/auth/register", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
 export interface LoginResponse {
   token: string;
   user: MeResponse;
 }
+
+export type MeResponse = {
+  username: string;
+  email: string;
+  photo: string | null;
+  phoneNumber: string | null;
+  address: string | null;
+};
 
 export async function loginApi(credentials: {
   email: string;
@@ -31,21 +32,13 @@ export async function loginApi(credentials: {
   return data;
 }
 
-export type MeResponse = {
-  username: string;
-  email: string;
-  photo: string | null;
-  phoneNumber: string | null;
-  address: string | null;
-};
-
-export function getMe(accessToken: string) {
-  return apiFetch<MeResponse>("/api/auth/me", { method: "GET" }, accessToken);
-}
-
 export function logout() {
   return apiFetch("/api/auth/logout", {
     method: "POST",
-    credentials: "include", // <- important! sends cookies
+    credentials: "include",
   });
+}
+
+export function getMe(accessToken: string) {
+  return apiFetch<MeResponse>("/api/auth/me", { method: "GET" }, accessToken);
 }
