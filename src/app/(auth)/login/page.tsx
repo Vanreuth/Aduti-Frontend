@@ -79,8 +79,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="m-20 overflow-hidden bg-white">
-      <div className="flex h-full items-center justify-center px-6">
+    <div className="overflow-hidden ">
+      <div className="flex my-20 items-center justify-center  ">
         <Card className="w-full max-w-md rounded-3xl">
           <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-3xl font-semibold text-zinc-900">

@@ -34,7 +34,7 @@ export default function SignupPage() {
     phoneNumber: "",
     address: "",
     bio: "",
-    photo: "",
+    photo: null as File | null,
     password: "",
     confirmPassword: "",
   });
@@ -52,7 +52,7 @@ export default function SignupPage() {
     setFormData((prev) => ({ ...prev, [id]: value }));
   }
 
-  function getStrengthColor(v: any) {
+  function getStrengthColor(v: number) {
     if (v < 40) return "bg-red-500/20";
     if (v < 80) return "bg-yellow-500/20";
     return "bg-emerald-500/20";
@@ -78,10 +78,9 @@ export default function SignupPage() {
         phoneNumber: formData.phoneNumber?.trim() || "",
         address: formData.address?.trim() || "",
         bio: formData.bio?.trim() || "",
-        photo: formData.photo?.trim() || "",
       });
 
-      router.push("/dashboard");
+      router.push("/shop");
     } catch (err) {
       setError((err as Error)?.message || "Register failed");
     } finally {
@@ -101,7 +100,7 @@ export default function SignupPage() {
   }, [formData.password]);
 
   return (
-    <div className="relative min-h-screen w-full bg-linear-to-br px-6 py-10">
+    <div className="relative w-full bg-linear-to-br px-6 py-10">
       <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-white/95 shadow-2xl">
         <Card className="border-0 bg-transparent shadow-none">
           <CardHeader className="space-y-2 px-10 pt-10">
@@ -278,18 +277,32 @@ export default function SignupPage() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-1">
-                <div className="grid gap-2">
-                  <Label htmlFor="photo">Photo </Label>
+                <div className="grid gap-2 ">
+                  <Label htmlFor="photo">Photo</Label>
                   <Input
                     id="photo"
-                    type="url"
-                    placeholder="https://example.com/avatar.jpg"
-                    value={formData.photo}
-                    onChange={handleChange}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          photo: e.target.files![0],
+                        }));
+                      }
+                    }}
                     disabled={loading}
                     className="h-11"
                   />
+                  {formData.photo && (
+                    <img
+                      src={URL.createObjectURL(formData.photo)}
+                      alt="Preview"
+                      className="mt-2 h-20 w-20 rounded-full object-cover"
+                    />
+                  )}
                 </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="bio">Bio</Label>
                   <Textarea
