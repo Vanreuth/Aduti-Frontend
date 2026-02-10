@@ -2,10 +2,47 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getMe } from "@/lib/api/auth";
-import Title from "@/components/common/Title";
+import { updateMe } from "@/lib/api/user";
 
 const Icons = {
+  Eye: () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+      />
+    </svg>
+  ),
+
+  EyeOff: () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.27-2.943-9.543-7a9.965 9.965 0 012.224-3.592M6.223 6.223A9.965 9.965 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.121 5.062M15 12a3 3 0 00-3-3M3 3l18 18"
+      />
+    </svg>
+  ),
+
   User: () => (
     <svg
       className="w-5 h-5"
@@ -137,66 +174,55 @@ const Icons = {
 export default function ProfilePage() {
   const { user, accessToken, loading: authLoading } = useAuth();
 
-  const [profile, setProfile] = useState<any>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [originalEmail, setOriginalEmail] = useState("");
 
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     phoneNumber: "",
     address: "",
+    bio: "",
     newPassword: "",
     confirmPassword: "",
-    photo: "",
-    bio: "",
+    photo: null as File | null,
   });
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!user) return;
 
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        const data = await getMe(accessToken);
-        setProfile(data);
-        setFormData({
-          username: data.username || "",
-          email: data.email || "",
-          phoneNumber: data.phoneNumber || "",
-          address: data.address || "",
-          newPassword: "",
-          confirmPassword: "",
-          photo: data.photo || "",
-          bio: data.bio || "",
-        });
-      } catch (err: any) {
-        console.error(err);
-        setError("Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    };
+    setOriginalEmail(user.email);
+    setFormData({
+      username: user.username || "",
+      email: user.email || "",
+      phoneNumber: user.phoneNumber || "",
+      address: user.address || "",
+      bio: user.bio || "",
+      newPassword: "",
+      confirmPassword: "",
+      photo: null,
+    });
 
-    fetchProfile();
-  }, [accessToken]);
+    setLoading(false);
+  }, [user]);
 
-  const handleInputChange = (
+  const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((p) => ({ ...p, [name]: value }));
     if (error) setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken) return;
-
-    setError("");
-    setSuccess("");
 
     if (
       formData.newPassword &&
@@ -206,43 +232,39 @@ export default function ProfilePage() {
       return;
     }
 
+    const fd = new FormData();
+
+    if (formData.username) fd.append("username", formData.username);
+    if (formData.email && formData.email !== originalEmail)
+      fd.append("email", formData.email);
+    if (formData.phoneNumber) fd.append("phoneNumber", formData.phoneNumber);
+    if (formData.address) fd.append("address", formData.address);
+    if (formData.bio) fd.append("bio", formData.bio);
+    if (formData.photo) fd.append("photo", formData.photo);
+
+    if (formData.newPassword) {
+      fd.append("password", formData.newPassword);
+      fd.append("confirmPassword", formData.confirmPassword);
+    }
+
+    if ([...fd.keys()].length === 0) {
+      setError("No changes to update");
+      return;
+    }
+
     try {
       setSaving(true);
-      const body: any = {
-        username: formData.username,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        address: formData.address,
-        photo: formData.photo,
-        bio: formData.bio,
-      };
-      if (formData.newPassword) body.password = formData.newPassword;
-
-      const res = await fetch("/api/auth/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error("Failed to update profile");
-
-      const updated = await res.json();
-      setProfile(updated);
+      await updateMe(fd, accessToken);
       setSuccess("Profile updated successfully!");
-      setTimeout(() => setSuccess(""), 5000);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to update profile");
+      setError(err.message || "Update failed");
     } finally {
       setSaving(false);
     }
   };
 
   if (authLoading || loading) return <div>Loading...</div>;
-  if (!user) return <div>Access Denied. Please log in.</div>;
+  if (!user) return <div>Access denied</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -269,10 +291,12 @@ export default function ProfilePage() {
       )}
 
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <Title text1="ACCOUNT" text2="PROFILE" />
-          <p className="text-slate-500 mt-2">
-            Manage your account settings and preferences.
+        <div className="mb-8 text-center">
+          <h1 className="text-xl font-semibold text-zinc-900">
+            Account Information
+          </h1>
+          <p className="mt-3 text-sm ">
+            Update your details and security preferences.
           </p>
         </div>
 
@@ -289,7 +313,7 @@ export default function ProfilePage() {
               type="text"
               name="username"
               value={formData.username}
-              onChange={handleInputChange}
+              onChange={handleChange}
               className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
             />
           </div>
@@ -303,7 +327,7 @@ export default function ProfilePage() {
               type="email"
               name="email"
               value={formData.email}
-              onChange={handleInputChange}
+              onChange={handleChange}
               className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
             />
           </div>
@@ -317,7 +341,7 @@ export default function ProfilePage() {
               type="tel"
               name="phoneNumber"
               value={formData.phoneNumber}
-              onChange={handleInputChange}
+              onChange={handleChange}
               className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
             />
           </div>
@@ -330,7 +354,7 @@ export default function ProfilePage() {
             <textarea
               name="address"
               value={formData.address}
-              onChange={handleInputChange}
+              onChange={handleChange}
               rows={2}
               className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
             />
@@ -338,17 +362,41 @@ export default function ProfilePage() {
 
           {/* Photo */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700">
-              Photo URL
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Profile Photo
             </label>
-            <input
-              type="text"
-              name="photo"
-              value={formData.photo}
-              onChange={handleInputChange}
-              placeholder="Enter URL of your profile photo"
-              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
-            />
+
+            <div className="flex items-center gap-4">
+              {/* Preview */}
+              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
+                {formData.photo ? (
+                  <img
+                    src={URL.createObjectURL(formData.photo)}
+                    className="w-full h-full object-cover"
+                  />
+                ) : user?.photo ? (
+                  <img
+                    src={user.photo}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Icons.User />
+                )}
+              </div>
+
+              {/* File input */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    photo: e.target.files?.[0] || null,
+                  }))
+                }
+                className="flex-1 text-sm"
+              />
+            </div>
           </div>
 
           {/* Bio */}
@@ -359,7 +407,7 @@ export default function ProfilePage() {
             <textarea
               name="bio"
               value={formData.bio}
-              onChange={handleInputChange}
+              onChange={handleChange}
               rows={3}
               placeholder="Write a short bio about yourself"
               className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
@@ -371,25 +419,44 @@ export default function ProfilePage() {
             <label className="block text-sm font-semibold text-gray-700">
               New Password
             </label>
-            <input
-              type="password"
-              name="newPassword"
-              value={formData.newPassword}
-              onChange={handleInputChange}
-              placeholder="Leave blank to keep current password"
-              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
-            />
+            <div className="relative">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleChange}
+                placeholder="Leave blank to keep current password"
+                className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-slate-200 outline-none bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showNewPassword ? <Icons.EyeOff /> : <Icons.Eye />}
+              </button>
+            </div>
+
             <label className="block text-sm font-semibold text-gray-700 mt-2">
               Confirm Password
             </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              placeholder="Confirm new password"
-              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm new password"
+                className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-slate-200 outline-none bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showConfirmPassword ? <Icons.EyeOff /> : <Icons.Eye />}
+              </button>
+            </div>
           </div>
 
           {/* Submit Button */}

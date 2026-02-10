@@ -16,14 +16,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React, { startTransition, useEffect, useState } from "react";
+import React, { startTransition } from "react";
 
 import { MobileMenuSheet } from "./navbar/MobileMenuSheet";
 import { WishlistSheet } from "./navbar/WishlistSheet";
 import { CartSheet } from "./navbar/CartSheet";
 import { SearchDialog } from "./navbar/SearchDialog";
 import { useAuth } from "@/context/AuthContext";
-import { type MeResponse, getMe } from "@/lib/api/auth";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
@@ -37,33 +36,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, accessToken, logout } = useAuth();
-  const [profile, setProfile] = useState<MeResponse | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async () => {
-      if (!accessToken) {
-        if (isMounted) setProfile(null);
-        return;
-      }
-
-      try {
-        const data = await getMe(accessToken); // ✅ use getMe
-        if (isMounted) setProfile(data);
-      } catch (error) {
-        console.error("Error loading user profile:", error);
-        if (isMounted) setProfile(null);
-      }
-    };
-
-    loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [accessToken]);
+  const { user, logout } = useAuth();
 
   const go = (href: string) => {
     if (href === pathname) return;
@@ -89,19 +62,15 @@ export default function Navbar() {
     }, 50);
   };
 
-  const handleLogout = async () => {
-    logout();
-  };
-
-  const displayName = profile?.username || user?.username || "Guest";
-  const email = profile?.email || user?.email || "";
-  const avatarUrl = profile?.photo || "/default-avatar.png";
+  const displayName = user?.username || "Guest";
+  const email = user?.email || "";
+  const avatarUrl = user?.photo || "/default-avatar.png";
 
   const initials =
     displayName
       .split(" ")
       .filter(Boolean)
-      .map((part) => part[0])
+      .map((p) => p[0])
       .join("")
       .slice(0, 2) || "G";
 
@@ -188,6 +157,7 @@ export default function Navbar() {
             />
             <WishlistSheet />
             <CartSheet />
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -200,6 +170,7 @@ export default function Navbar() {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent className="w-64 p-2" align="end">
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex items-center gap-3">
@@ -219,7 +190,9 @@ export default function Navbar() {
                       </div>
                     </div>
                   </DropdownMenuLabel>
+
                   <DropdownMenuSeparator />
+
                   <DropdownMenuItem asChild>
                     <Link href="/account" className="cursor-pointer">
                       <span className="flex items-center gap-2">
@@ -228,9 +201,10 @@ export default function Navbar() {
                       </span>
                     </Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
-                    onClick={handleLogout}
+                    onClick={logout}
                   >
                     <span className="flex items-center gap-2">
                       <LogOut className="h-4 w-4" />

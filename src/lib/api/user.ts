@@ -1,4 +1,5 @@
-﻿import { apiFetch } from "./client";
+﻿import { MeResponse } from "./auth";
+import { apiFetch } from "./client";
 import type { UserProfile } from "@/types/user";
 
 // register user (with FormData, optional photo)
@@ -26,12 +27,34 @@ export async function register(formData: FormData) {
   return data; // server response
 }
 
-export function updateMe(payload: string, token: string) {
-  return apiFetch(
+// export function updateMe(payload: FormData, token: string) {
+//   return apiFetch(
+//     "/api/users/me",
+//     {
+//       method: "PUT",
+//       body: payload, // ✅ FormData
+//     },
+//     token,
+//   );
+// }
+
+// export function updateMe(payload: FormData, token: string) {
+//   return apiFetch<MeResponse>(
+//     "/api/users/me",
+//     {
+//       method: "PUT",
+//       body: payload, // FormData
+//     },
+//     token,
+//   );
+// }
+
+export function updateMe(payload: FormData, token: string) {
+  return apiFetch<MeResponse>(
     "/api/users/me",
     {
       method: "PUT",
-      body: JSON.stringify(payload),
+      body: payload, // FormData
     },
     token,
   );

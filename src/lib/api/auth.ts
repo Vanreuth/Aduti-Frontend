@@ -1,45 +1,37 @@
+//
+// src/lib/api/auth.ts
 import { apiFetch } from "./client";
 
-export interface LoginResponse {
-  token: string;
-  user: MeResponse;
-}
-
 export type MeResponse = {
-  bio: string;
   username: string;
   email: string;
+  bio: string;
   photo: string | null;
   phoneNumber: string | null;
   address: string | null;
 };
 
-export async function loginApi(credentials: {
-  email: string;
+export type LoginResponse = {
+  token: string;
+  user: MeResponse;
+};
+
+export async function loginApi(data: {
+  username: string;
   password: string;
 }): Promise<LoginResponse> {
-  const res = await fetch("/api/auth/login", {
+  const res = await apiFetch<LoginResponse>("/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
+    body: JSON.stringify(data),
   });
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || "Login failed");
-  }
+  return res;
+}
 
-  const data = await res.json();
-  return data;
+export function getMe(token: string) {
+  return apiFetch<MeResponse>("/api/auth/me", { method: "GET" }, token);
 }
 
 export function logout() {
-  return apiFetch("/api/auth/logout", {
-    method: "POST",
-    credentials: "include",
-  });
-}
-
-export function getMe(accessToken: string) {
-  return apiFetch<MeResponse>("/api/auth/me", { method: "GET" }, accessToken);
+  return apiFetch("/api/auth/logout", { method: "POST" });
 }
