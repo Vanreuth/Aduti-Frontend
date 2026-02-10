@@ -6,13 +6,8 @@ import Link from "next/link";
 import {
   Heart,
   ShoppingCart,
-  X,
   Minus,
   Plus,
-  Truck,
-  Shield,
-  RotateCcw,
-  Star,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -22,6 +17,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { Product, ProductVariant, ProductImage } from "@/types/api";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -224,57 +221,21 @@ export function QuickViewDialog({
     }
   };
 
-  const renderStars = (rating: number) => (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={cn(
-            "w-4 h-4",
-            star <= Math.floor(rating)
-              ? "fill-amber-400 text-amber-400"
-              : "fill-zinc-200 text-zinc-200",
-          )}
-        />
-      ))}
-    </div>
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          // BIGGER + nicer sizing
           "p-0 overflow-hidden",
-          "w-[96vw] sm:w-[94vw] lg:w-[92vw]",
-          "max-w-[1200px]",
-          "max-h-[92vh]",
+          "max-w-[750px]",
           "rounded-[26px]",
-          "border border-zinc-200/70 bg-white",
+          "border border-zinc-300 bg-white",
           "shadow-[0_30px_80px_-35px_rgba(0,0,0,0.45)]",
         )}
+        size="lg"
       >
         <DialogTitle className="sr-only">
           {product?.name || "Quick View"}
         </DialogTitle>
-
-        {/* Top bar */}
-        <div className="relative flex items-center justify-between px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <p className="text-sm text-zinc-600 truncate">
-              Quick View {product?.name ? `• ${product.name}` : ""}
-            </p>
-          </div>
-
-          <button
-            onClick={() => onOpenChange(false)}
-            className="p-2 rounded-full bg-white shadow-sm border border-zinc-200 hover:bg-zinc-50 transition"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-zinc-700" />
-          </button>
-        </div>
 
         <AnimatePresence mode="wait">
           {loading ? (
@@ -329,7 +290,7 @@ export function QuickViewDialog({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="max-h-[calc(92vh-60px)] overflow-y-auto"
+              className="max-h-[92vh] overflow-y-auto"
             >
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 {/* LEFT: Image + Options + Description */}
@@ -340,7 +301,7 @@ export function QuickViewDialog({
                     initial={{ opacity: 0, scale: 0.985 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.25 }}
-                    className="relative aspect-square rounded-3xl overflow-hidden bg-white shadow-md"
+                    className="relative aspect-square rounded-3xl overflow-hidden bg-white shadow-lg border border-zinc-200"
                   >
                     <Image
                       src={galleryImages[selectedImageIndex]}
@@ -404,9 +365,9 @@ export function QuickViewDialog({
 
                   {/* Options under image */}
                   {(sizes.length > 0 || colors.length > 0) && (
-                    <div className="mt-6 rounded-2xl border border-zinc-200/70 bg-white p-4 md:p-5">
+                    <div className="mt-6 rounded-2xl border border-zinc-300 bg-white p-4 md:p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-sm font-semibold text-zinc-900">
+                        <p className="text-sm font-bold text-zinc-900">
                           Options
                         </p>
                         {(selectedSize || selectedColor) && (
@@ -483,7 +444,7 @@ export function QuickViewDialog({
                   )}
 
                   {/* Description under options */}
-                  <div className="mt-4 rounded-2xl border border-zinc-200/70 bg-white p-4 md:p-5">
+                  <div className="mt-4 rounded-2xl border border-zinc-300 bg-white p-4 md:p-5">
                     <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
                       Details
                     </p>
@@ -497,29 +458,25 @@ export function QuickViewDialog({
                 {/* RIGHT: Product Info + Actions */}
                 <div className="p-6 md:p-8 lg:p-10 flex flex-col">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="text-[11px] uppercase tracking-[0.25em] text-zinc-500 font-semibold">
+                    <Badge className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.25em] font-semibold bg-zinc-900 text-white border-zinc-900">
                       {productMeta.category ?? "Product"}
-                    </span>
+                    </Badge>
                     {productMeta.brand ? (
-                      <span className="text-xs text-zinc-500 font-medium">
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-600"
+                      >
                         {productMeta.brand}
-                      </span>
+                      </Badge>
                     ) : null}
                   </div>
 
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-900 mb-4">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-zinc-900 mb-4">
                     {product.name}
                   </h2>
 
-                  <div className="flex items-center gap-3 mb-4">
-                    {renderStars(0)}
-                    <span className="text-xs md:text-sm text-zinc-500 font-medium">
-                      No reviews yet
-                    </span>
-                  </div>
-
                   <div className="mb-6">
-                    <span className="text-2xl md:text-3xl font-semibold tracking-tight text-zinc-900">
+                    <span className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900">
                       ${Number(chosenPrice).toFixed(2)}
                     </span>
                     {chosenVariant ? (
@@ -530,12 +487,14 @@ export function QuickViewDialog({
                     ) : null}
                   </div>
 
+                  <Separator className="my-4" />
+
                   {/* Quantity */}
                   <div className="mb-5">
-                    <p className="text-sm font-semibold text-zinc-900 mb-2">
+                    <p className="text-sm font-bold text-zinc-900 mb-2">
                       Quantity
                     </p>
-                    <div className="inline-flex items-center border border-zinc-200 rounded-full bg-white">
+                    <div className="inline-flex items-center border-2 border-zinc-300 rounded-full bg-white">
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                         className="w-10 h-10 flex items-center justify-center text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-l-full transition"
@@ -559,7 +518,7 @@ export function QuickViewDialog({
                   {/* Actions */}
                   <div className="flex gap-2 md:gap-3 mb-4">
                     <Button
-                      className="flex-1 h-11 md:h-12 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full text-sm md:text-base font-semibold shadow-lg shadow-zinc-900/20 hover:shadow-xl hover:shadow-zinc-900/30 transition-all"
+                      className="flex-1 h-11 md:h-12 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full text-sm md:text-base font-bold shadow-lg shadow-zinc-900/20 hover:shadow-xl hover:shadow-zinc-900/30 transition-all"
                       onClick={handleAddToCart}
                     >
                       <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 mr-2" />
@@ -573,7 +532,7 @@ export function QuickViewDialog({
                         "h-11 w-11 md:h-12 md:w-12 rounded-full border-2 transition-all shrink-0",
                         isInWishlist
                           ? "bg-red-50 border-red-200 hover:bg-red-100"
-                          : "border-zinc-200 hover:border-zinc-300",
+                          : "border-zinc-300 hover:border-zinc-400",
                       )}
                       onClick={toggleWishlist}
                       aria-label="Toggle wishlist"
@@ -592,7 +551,7 @@ export function QuickViewDialog({
                   <Button
                     asChild
                     variant="outline"
-                    className="w-full h-10 md:h-11 rounded-full border-zinc-300 hover:bg-zinc-50 mb-6"
+                    className="w-full h-10 md:h-11 rounded-full border-2 border-zinc-300 hover:bg-zinc-50 mb-6 font-semibold"
                   >
                     <Link
                       href={`/shop/${product.id}`}
@@ -601,56 +560,6 @@ export function QuickViewDialog({
                       View Full Details
                     </Link>
                   </Button>
-
-                  {/* Perks */}
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-100">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
-                      <Truck className="w-4 h-4 text-zinc-700" />
-                      Free Shipping
-                    </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
-                      <Shield className="w-4 h-4 text-zinc-700" />
-                      Secure Pay
-                    </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600">
-                      <RotateCcw className="w-4 h-4 text-zinc-700" />
-                      Easy Return
-                    </div>
-                  </div>
-
-                  {/* Sticky actions on mobile */}
-                  <div className="lg:hidden sticky bottom-0 mt-8 -mx-6 px-6 py-4 bg-white/90 backdrop-blur border-t border-zinc-100">
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 h-11 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full font-semibold"
-                        onClick={handleAddToCart}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Add
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className={cn(
-                          "h-11 w-11 rounded-full border-2",
-                          isInWishlist
-                            ? "bg-red-50 border-red-200 hover:bg-red-100"
-                            : "border-zinc-200 hover:border-zinc-300",
-                        )}
-                        onClick={toggleWishlist}
-                        aria-label="Toggle wishlist"
-                      >
-                        <Heart
-                          className={cn(
-                            "w-4 h-4",
-                            isInWishlist
-                              ? "fill-red-500 text-red-500"
-                              : "text-zinc-600",
-                          )}
-                        />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </motion.div>

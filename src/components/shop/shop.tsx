@@ -11,9 +11,9 @@ import {
   ShopLoading,
   priceRanges,
 } from "@/components/shop";
-
 import type { ProductListData } from "@/types/api";
 import { getAllProducts } from "@/lib/api/product";
+import { getAllCategories } from "@/lib/api/category";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeUpItem } from "@/lib/utils";
@@ -52,6 +52,12 @@ export const ShopContent = () => {
   const [localQuery, setLocalQuery] = useState(searchQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const [priceRange, setPriceRange] = useState(0);
+  const [categorySlug, setCategorySlug] = useState<string>("all");
+  const [sizeValue, setSizeValue] = useState<string>("all");
+  const [colorValue, setColorValue] = useState<string>("all");
+  const [categoryOptions, setCategoryOptions] = useState<
+    Array<{ label: string; value: string }>
+  >([{ label: "All", value: "all" }]);
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [page, setPage] = useState(0);
   const pageSize = 12;
@@ -64,10 +70,41 @@ export const ShopContent = () => {
     return () => clearTimeout(handle);
   }, [localQuery]);
 
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        const categories = await getAllCategories();
+        if (!alive) return;
+        const activeCategories = categories
+          .filter((category) => category.isActive)
+          .map((category) => ({
+            label: category.name,
+            value: category.slug,
+          }));
+        setCategoryOptions([{ label: "All", value: "all" }, ...activeCategories]);
+      } catch {
+        if (!alive) return;
+        setCategoryOptions([{ label: "All", value: "all" }]);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Fetch products when filters change
   useEffect(() => {
     let mounted = true;
 
+    const categoryFilter =
+      categorySlug && categorySlug !== "all" ? categorySlug : undefined;
+    const sizeFilter =
+      sizeValue && sizeValue !== "all" ? sizeValue : undefined;
+    const colorFilter =
+      colorValue && colorValue !== "all" ? colorValue : undefined;
     const range = priceRanges[priceRange];
     const minPrice = range.min > 0 ? range.min : undefined;
     const maxPrice =
@@ -91,6 +128,9 @@ export const ShopContent = () => {
           sortBy: sortConfig.sortBy,
           direction: sortConfig.direction,
           search: debouncedQuery || undefined,
+          category: categoryFilter,
+          sizeValue: sizeFilter,
+          color: colorFilter,
           minPrice,
           maxPrice,
         });
@@ -115,11 +155,47 @@ export const ShopContent = () => {
     pageSize,
     debouncedQuery,
     priceRange,
+    categorySlug,
+    sizeValue,
+    colorValue,
     sortBy,
   ]);
 
+  const sizeOptions = useMemo(() => {
+    const values = new Set<string>();
+    for (const product of pageData.products) {
+      for (const variant of product.variants ?? []) {
+        if (variant.size) values.add(String(variant.size));
+      }
+    }
+    if (sizeValue && sizeValue !== "all") values.add(sizeValue);
+    return [{ label: "All", value: "all" }].concat(
+      Array.from(values)
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ label: value, value })),
+    );
+  }, [pageData.products, sizeValue]);
+
+  const colorOptions = useMemo(() => {
+    const values = new Set<string>();
+    for (const product of pageData.products) {
+      for (const variant of product.variants ?? []) {
+        if (variant.color) values.add(String(variant.color));
+      }
+    }
+    if (colorValue && colorValue !== "all") values.add(colorValue);
+    return [{ label: "All", value: "all" }].concat(
+      Array.from(values)
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ label: value, value })),
+    );
+  }, [pageData.products, colorValue]);
+
   const handleReset = () => {
     setPriceRange(0);
+    setCategorySlug("all");
+    setSizeValue("all");
+    setColorValue("all");
     setSortBy("featured");
     setPage(0);
   };
@@ -128,6 +204,9 @@ export const ShopContent = () => {
     setLocalQuery("");
     setDebouncedQuery("");
     setPriceRange(0);
+    setCategorySlug("all");
+    setSizeValue("all");
+    setColorValue("all");
     setSortBy("featured");
     setPage(0);
     if (searchParams.has("search")) {
@@ -186,6 +265,42 @@ export const ShopContent = () => {
           onRemove: clearSearch,
         }
       : null,
+    categorySlug && categorySlug !== "all"
+      ? {
+          id: "category",
+          label:
+            categoryOptions.find((option) => option.value === categorySlug)
+              ?.label ?? "Category",
+          onRemove: () => {
+            setCategorySlug("all");
+            setPage(0);
+          },
+        }
+      : null,
+    sizeValue && sizeValue !== "all"
+      ? {
+          id: "size",
+          label:
+            sizeOptions.find((option) => option.value === sizeValue)?.label ??
+            "Size",
+          onRemove: () => {
+            setSizeValue("all");
+            setPage(0);
+          },
+        }
+      : null,
+    colorValue && colorValue !== "all"
+      ? {
+          id: "color",
+          label:
+            colorOptions.find((option) => option.value === colorValue)?.label ??
+            "Color",
+          onRemove: () => {
+            setColorValue("all");
+            setPage(0);
+          },
+        }
+      : null,
     priceRange > 0
       ? {
           id: "price",
@@ -212,7 +327,11 @@ export const ShopContent = () => {
     onRemove: () => void;
   }>;
 
-  const activeFilterCount = priceRange > 0 ? 1 : 0;
+  const activeFilterCount =
+    (priceRange > 0 ? 1 : 0) +
+    (categorySlug !== "all" ? 1 : 0) +
+    (sizeValue !== "all" ? 1 : 0) +
+    (colorValue !== "all" ? 1 : 0);
 
   if (isInitialLoading) {
     return <ShopLoading />;
@@ -266,6 +385,24 @@ export const ShopContent = () => {
         <div className="flex gap-8">
           <FiltersPanel activeCount={activeFilterCount}>
             <FilterSidebar
+              categories={categoryOptions}
+              categorySlug={categorySlug}
+              sizeOptions={sizeOptions}
+              sizeValue={sizeValue}
+              onSizeChange={(value) => {
+                setSizeValue(value);
+                setPage(0);
+              }}
+              colorOptions={colorOptions}
+              colorValue={colorValue}
+              onColorChange={(value) => {
+                setColorValue(value);
+                setPage(0);
+              }}
+              onCategoryChange={(slug) => {
+                setCategorySlug(slug);
+                setPage(0);
+              }}
               priceRange={priceRange}
               onPriceRangeChange={(idx) => {
                 setPriceRange(idx);
