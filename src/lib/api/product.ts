@@ -1,4 +1,9 @@
-import type { ApiResponse, Product, ProductListData } from "@/types/api";
+import type {
+  ApiResponse,
+  Product,
+  ProductDetailData,
+  ProductListData,
+} from "@/types/api";
 import { api } from "@/lib/api/client";
 
 export type GetAllProductsParams = {
@@ -8,6 +13,8 @@ export type GetAllProductsParams = {
   direction?: "ASC" | "DESC";
   search?: string;
   category?: string;
+  sizeValue?: string;
+  color?: string;
   minPrice?: number;
   maxPrice?: number;
   startDate?: string | Date;
@@ -30,6 +37,8 @@ export async function getAllProducts(params?: GetAllProductsParams) {
 
   if (params?.search?.trim()) sp.set("search", params.search.trim());
   if (params?.category?.trim()) sp.set("category", params.category.trim());
+  if (params?.sizeValue?.trim()) sp.set("sizeValue", params.sizeValue.trim());
+  if (params?.color?.trim()) sp.set("color", params.color.trim());
   if (params?.minPrice !== undefined) sp.set("minPrice", String(params.minPrice));
   if (params?.maxPrice !== undefined) sp.set("maxPrice", String(params.maxPrice));
 
@@ -42,9 +51,29 @@ export async function getAllProducts(params?: GetAllProductsParams) {
   return json.data;
 }
 
+type ProductDetailResponse = Product | ProductDetailData;
+
 export async function getProductById(id: string | number) {
-  const json = await api<ApiResponse<Product>>(`/api/products/${id}`);
+  const json = await api<ApiResponse<ProductDetailResponse>>(
+    `/api/products/${id}`,
+  );
+  if (json.data && "product" in json.data) {
+    return json.data.product;
+  }
   return json.data;
+}
+
+export async function getProductDetail(id: string | number) {
+  const json = await api<ApiResponse<ProductDetailResponse>>(
+    `/api/products/${id}`,
+  );
+  if (json.data && "product" in json.data) {
+    return {
+      product: json.data.product,
+      relatedProducts: json.data.relatedProducts ?? [],
+    };
+  }
+  return { product: json.data, relatedProducts: [] };
 }
 
 

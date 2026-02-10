@@ -7,7 +7,7 @@ import type { Product, Category } from "@/types/api"; // <-- use backend types
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { useWishlist } from "@/context/WishlistContext";
-import { ProductGrid } from "../shop/ProductGrid";
+import { ProductGrid } from "./ProductGrid";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { staggerContainer, fadeUpItem } from "@/lib/utils";
@@ -25,22 +25,20 @@ export default function ProductOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Contexts
+
   const { addItem } = useCart();
   const { items: wishlistItems, add, remove } = useWishlist();
 
-  // ✅ Build tabs from backend categories
   const tabs: Tab[] = useMemo(() => {
     const activeCats = categories.filter((c) => c.isActive);
     return [{ id: "all", label: "All Products" }].concat(
       activeCats.map((c) => ({
-        id: c.slug, // IMPORTANT: use slug for filtering
+        id: c.slug,
         label: c.name,
       })),
     );
   }, [categories]);
 
-  // ✅ Fetch categories + products
   const loadData = async () => {
     try {
       setLoading(true);
@@ -82,7 +80,7 @@ export default function ProductOverview() {
       id: String(product.id),
       name: product.name,
       price: product.price,
-      image: thumbnail, // backend image is inside variants.images
+      image: thumbnail, 
     });
 
     toast.success("Added to cart 🛒", {
@@ -163,8 +161,8 @@ export default function ProductOverview() {
 
   return (
     <div className="container-app">
-      <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <section className="w-full  py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             variants={staggerContainer}
             initial="hidden"

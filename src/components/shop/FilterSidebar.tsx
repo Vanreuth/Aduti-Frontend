@@ -5,27 +5,52 @@ import { priceRanges as defaultPriceRanges } from "./priceRanges";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CategoryOption = { label: string; value: string };
 
 export function FilterSidebar({
   categories,
   categorySlug,
+  sizeOptions,
+  sizeValue,
+  colorOptions,
+  colorValue,
   priceRange,
   priceRanges = defaultPriceRanges,
   onCategoryChange,
+  onSizeChange,
+  onColorChange,
   onPriceRangeChange,
   onReset,
 }: {
   categories?: CategoryOption[];
   categorySlug?: string;
+  sizeOptions?: CategoryOption[];
+  sizeValue?: string;
+  colorOptions?: CategoryOption[];
+  colorValue?: string;
   priceRange: number;
   priceRanges?: PriceRange[];
   onCategoryChange?: (slug: string) => void;
+  onSizeChange?: (value: string) => void;
+  onColorChange?: (value: string) => void;
   onPriceRangeChange: (index: number) => void;
   onReset: () => void;
 }) {
   const showCategories = Array.isArray(categories) && categories.length > 0;
+  const showSizes =
+    (Array.isArray(sizeOptions) && sizeOptions.length > 1) ||
+    (sizeValue && sizeValue !== "all");
+  const showColors =
+    (Array.isArray(colorOptions) && colorOptions.length > 1) ||
+    (colorValue && colorValue !== "all");
   return (
     <div className="space-y-6">
       {/* Category */}
@@ -56,6 +81,60 @@ export function FilterSidebar({
             </div>
           </div>
 
+          <Separator />
+        </>
+      ) : null}
+
+      {/* Size */}
+      {showSizes ? (
+        <>
+          <div>
+            <Label className="text-sm font-medium text-zinc-900">Size</Label>
+            <div className="mt-3">
+              <Select
+                value={sizeValue ?? "all"}
+                onValueChange={(value) => onSizeChange?.(value)}
+              >
+                <SelectTrigger className="w-full rounded-xl border-zinc-200">
+                  <SelectValue placeholder="All sizes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizeOptions?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Separator />
+        </>
+      ) : null}
+
+      {/* Color */}
+      {showColors ? (
+        <>
+          <div>
+            <Label className="text-sm font-medium text-zinc-900">Color</Label>
+            <div className="mt-3">
+              <Select
+                value={colorValue ?? "all"}
+                onValueChange={(value) => onColorChange?.(value)}
+              >
+                <SelectTrigger className="w-full rounded-xl border-zinc-200">
+                  <SelectValue placeholder="All colors" />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorOptions?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <Separator />
         </>
       ) : null}

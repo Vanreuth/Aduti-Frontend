@@ -57,3 +57,8 @@ export type ProductListData = {
   totalPages: number;
   last: boolean;
 };
+
+export type ProductDetailData = {
+  product: Product;
+  relatedProducts: Product[];
+};
