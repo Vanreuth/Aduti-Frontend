@@ -58,6 +58,50 @@ export default function SignupPage() {
     return "bg-emerald-500/20";
   }
 
+  // async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
+  //   e.preventDefault();
+  //   setError("");
+
+  //   if (formData.password !== formData.confirmPassword) {
+  //     setError("Password and Confirm Password do not match.");
+  //     return;
+  //   }
+
+  //   setLoading(true);
+
+  //   try {
+  //     const body = new FormData();
+  //     body.append("username", formData.username.trim());
+  //     body.append("email", formData.email.trim());
+  //     body.append("password", formData.password);
+  //     body.append("confirmPassword", formData.confirmPassword);
+  //     if (formData.phoneNumber)
+  //       body.append("phoneNumber", formData.phoneNumber.trim());
+  //     if (formData.address) body.append("address", formData.address.trim());
+  //     if (formData.bio) body.append("bio", formData.bio.trim());
+  //     if (formData.photo) body.append("photo", formData.photo);
+
+  //     const res = await fetch("http://localhost:8080/api/users/register", {
+  //       method: "POST",
+  //       body: body, // ✅ FormData, browser sets Content-Type automatically
+  //     });
+
+  //     if (!res.ok) {
+  //       const errorData = await res.json();
+  //       throw new Error(errorData.message || "Register failed");
+  //     }
+
+  //     const data = await res.json();
+  //     console.log("Server response:", data);
+
+  //     router.push("/shop");
+  //   } catch (err) {
+  //     setError((err as Error)?.message || "Register failed");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
+
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -70,15 +114,19 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await register({
-        username: formData.username.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        phoneNumber: formData.phoneNumber?.trim() || "",
-        address: formData.address?.trim() || "",
-        bio: formData.bio?.trim() || "",
-      });
+      const body = new FormData();
+      body.append("username", formData.username.trim());
+      body.append("email", formData.email.trim());
+      body.append("password", formData.password);
+      body.append("confirmPassword", formData.confirmPassword);
+      if (formData.phoneNumber)
+        body.append("phoneNumber", formData.phoneNumber.trim());
+      if (formData.address) body.append("address", formData.address.trim());
+      if (formData.bio) body.append("bio", formData.bio.trim());
+      if (formData.photo) body.append("photo", formData.photo);
+
+      const data = await register(body);
+      console.log("Server response:", data);
 
       router.push("/shop");
     } catch (err) {

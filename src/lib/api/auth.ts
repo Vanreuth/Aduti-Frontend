@@ -6,6 +6,7 @@ export interface LoginResponse {
 }
 
 export type MeResponse = {
+  bio: string;
   username: string;
   email: string;
   photo: string | null;

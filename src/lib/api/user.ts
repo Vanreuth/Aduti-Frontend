@@ -1,12 +1,29 @@
 ﻿import { apiFetch } from "./client";
 import type { UserProfile } from "@/types/user";
 
-// register user
-export function register(payload: any) {
-  return apiFetch("/api/users/register", {
+// register user (with FormData, optional photo)
+export async function register(formData: FormData) {
+  const res = await fetch("http://localhost:8080/api/users/register", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: formData, // ✅ FormData, browser sets Content-Type automatically
   });
+
+  const contentType = res.headers.get("content-type") || "";
+
+  let data: any;
+  if (contentType.includes("application/json")) {
+    data = await res.json();
+  } else {
+    data = await res.text();
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      typeof data === "string" ? data : data.message || "Register failed",
+    );
+  }
+
+  return data; // server response
 }
 
 export function updateMe(payload: string, token: string) {

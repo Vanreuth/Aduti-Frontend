@@ -138,7 +138,6 @@ export default function ProfilePage() {
   const { user, accessToken, loading: authLoading } = useAuth();
 
   const [profile, setProfile] = useState<any>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -151,11 +150,13 @@ export default function ProfilePage() {
     address: "",
     newPassword: "",
     confirmPassword: "",
+    photo: "",
+    bio: "",
   });
 
-  // Fetch profile via API
   useEffect(() => {
     if (!accessToken) return;
+
     const fetchProfile = async () => {
       try {
         setLoading(true);
@@ -168,6 +169,8 @@ export default function ProfilePage() {
           address: data.address || "",
           newPassword: "",
           confirmPassword: "",
+          photo: data.photo || "",
+          bio: data.bio || "",
         });
       } catch (err: any) {
         console.error(err);
@@ -176,6 +179,7 @@ export default function ProfilePage() {
         setLoading(false);
       }
     };
+
     fetchProfile();
   }, [accessToken]);
 
@@ -209,6 +213,8 @@ export default function ProfilePage() {
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         address: formData.address,
+        photo: formData.photo,
+        bio: formData.bio,
       };
       if (formData.newPassword) body.password = formData.newPassword;
 
@@ -225,7 +231,6 @@ export default function ProfilePage() {
 
       const updated = await res.json();
       setProfile(updated);
-      setIsEditing(false);
       setSuccess("Profile updated successfully!");
       setTimeout(() => setSuccess(""), 5000);
     } catch (err: any) {
@@ -236,22 +241,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCancel = () => {
-    if (profile) {
-      setFormData({
-        username: profile.username || "",
-        email: profile.email || "",
-        phoneNumber: profile.phoneNumber || "",
-        address: profile.address || "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    }
-    setIsEditing(false);
-    setError("");
-    setSuccess("");
-  };
-
   if (authLoading || loading) return <div>Loading...</div>;
   if (!user) return <div>Access Denied. Please log in.</div>;
 
@@ -260,7 +249,11 @@ export default function ProfilePage() {
       {/* Toasts */}
       {(error || success) && (
         <div
-          className={`fixed top-6 right-6 z-50 animate-in fade-in slide-in-from-top-4 duration-300 ${error ? "bg-red-50/90 border-red-200 text-red-800" : "bg-emerald-50/90 border-emerald-200 text-emerald-800"} flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md`}
+          className={`fixed top-6 right-6 z-50 animate-in fade-in slide-in-from-top-4 duration-300 ${
+            error
+              ? "bg-red-50/90 border-red-200 text-red-800"
+              : "bg-emerald-50/90 border-emerald-200 text-emerald-800"
+          } flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md`}
         >
           {error ? <Icons.X /> : <Icons.Check />}
           <span>{error || success}</span>
@@ -276,135 +269,138 @@ export default function ProfilePage() {
       )}
 
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
-          <div>
-            <Title text1="ACCOUNT" text2="PROFILE" />
-            <p className="text-slate-500 mt-2">
-              Manage your account settings and preferences.
-            </p>
-          </div>
-          {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-semibold hover:bg-slate-50 shadow-sm"
-            >
-              <Icons.Edit /> Edit Profile
-            </button>
-          )}
+        <div className="mb-8">
+          <Title text1="ACCOUNT" text2="PROFILE" />
+          <p className="text-slate-500 mt-2">
+            Manage your account settings and preferences.
+          </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100 p-5"
+          className="rounded-2xl shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100 p-5 space-y-6"
         >
-          <div className="space-y-6">
-            {/* Username */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">
-                Username
-              </label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className={`w-full px-4 py-3 rounded-xl outline-none ${isEditing ? "bg-white border-2 border-slate-200" : "bg-slate-50/50 border-transparent cursor-default"}`}
-              />
-            </div>
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className={`w-full px-4 py-3 rounded-xl outline-none ${isEditing ? "bg-white border-2 border-slate-200" : "bg-slate-50/50 border-transparent cursor-default"}`}
-              />
-            </div>
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className={`w-full px-4 py-3 rounded-xl outline-none ${isEditing ? "bg-white border-2 border-slate-200" : "bg-slate-50/50 border-transparent cursor-default"}`}
-              />
-            </div>
+          {/* Phone Number */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
 
-            {/* Address */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">
-                Address
-              </label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                rows={2}
-                className={`w-full px-4 py-3 rounded-xl outline-none ${isEditing ? "bg-white border-2 border-slate-200" : "bg-slate-50/50 border-transparent cursor-default"}`}
-              />
-            </div>
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Address
+            </label>
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
 
-            {/* Security Section */}
-            {isEditing && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mt-4">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleInputChange}
-                  placeholder="Leave blank to keep current password"
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none"
-                />
-                <label className="block text-sm font-semibold text-gray-700 mt-2">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  placeholder="Confirm new password"
-                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none"
-                />
-              </div>
-            )}
+          {/* Photo */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Photo URL
+            </label>
+            <input
+              type="text"
+              name="photo"
+              value={formData.photo}
+              onChange={handleInputChange}
+              placeholder="Enter URL of your profile photo"
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
 
-            {/* Action Buttons */}
-            {isEditing && (
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold"
-                >
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            )}
+          {/* Bio */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Bio
+            </label>
+            <textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              rows={3}
+              placeholder="Write a short bio about yourself"
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
+
+          {/* Security Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">
+              New Password
+            </label>
+            <input
+              type="password"
+              name="newPassword"
+              value={formData.newPassword}
+              onChange={handleInputChange}
+              placeholder="Leave blank to keep current password"
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+            <label className="block text-sm font-semibold text-gray-700 mt-2">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              placeholder="Confirm new password"
+              className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 outline-none bg-white"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end mt-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
           </div>
         </form>
       </div>
