@@ -15,7 +15,10 @@ export async function apiFetch<T>(
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+  console.log(`[API] ${options.method || "GET"} ${url}`);
+
+  const res = await fetch(url, {
     ...options,
     headers,
   });
@@ -23,6 +26,7 @@ export async function apiFetch<T>(
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
+    console.error(`[API Error] ${res.status} ${url}`, data);
     const msg =
       data?.message || data?.error || `Request failed (${res.status})`;
     throw new Error(msg);
