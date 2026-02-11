@@ -2,7 +2,7 @@ export type ApiResponse<T> = {
   success: boolean;
   message: string;
   data: T;
-  timestamp?: string;
+  timestamp: string;
 };
 
 export type Category = {
@@ -11,18 +11,16 @@ export type Category = {
   slug: string;
   description?: string | null;
   isActive: boolean;
-  createdAt: string | null;
-  updatedAt: string | null;
-  createdByUsername?: string | null;
-  createdByPhoto: string | null;
-  productCount: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  productCount?: number | null;
 };
 
 export type ProductImage = {
   id: number;
   imageUrl: string;
   imageKey: string;
-  uploadedAt: string | null;
+  uploadedAt?: string | null;
 };
 
 export type ProductVariant = {
@@ -34,29 +32,22 @@ export type ProductVariant = {
   priceAdjustment: number;
   finalPrice: number;
   isAvailable: boolean;
-  createdAt: string | null;
+  createdAt?: string | null;
   images: ProductImage[];
 };
 
 export type Product = {
   id: number;
   name: string;
-  description: string;
+  description?: string | null;
   price: number;
-  brand: string;
+  brand?: string | null;
   isActive: boolean;
-  createdAt: string | null;
-  updatedAt: string | null;
-  createdByUsername?: string | null;
-  createdByPhoto?: string | null;
-  category: Category;
-  variants: ProductVariant[];
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  category?: Category | null;
+  variants?: ProductVariant[] | null;
 };
-
-export type CreateProductData = {
-  name: string;
-  description: string;
-}
 
 export type ProductListData = {
   products: Product[];
@@ -65,9 +56,4 @@ export type ProductListData = {
   totalElements: number;
   totalPages: number;
   last: boolean;
-};
-
-export type ProductDetailData = {
-  product: Product;
-  relatedProducts: Product[];
 };

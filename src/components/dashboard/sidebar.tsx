@@ -10,6 +10,8 @@ import {
   BarChart3,
   LogOut,
   ChevronDown,
+  PackageSearch,
+  ShoppingBasket
 } from "lucide-react";
 
 import {
@@ -70,9 +72,24 @@ const sidebarGroups: { title: string; items: SidebarItem[] }[] = [
         badge: "12",
         badgeVariant: "secondary",
       },
-
+      {
+        title: "Category",
+        href: "/dashboard/categories",
+        icon: PackageSearch,
+        badge: "5",
+        badgeVariant: "destructive",
+      },
+       {
+        title: "Products",
+        href: "/dashboard/products",
+        icon: ShoppingBasket,
+        badge: "12",
+        badgeVariant: "secondary",
+      },
     ],
+
   },
+  
 ];
 
 interface SidebarProps {

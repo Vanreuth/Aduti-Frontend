@@ -1,35 +1,40 @@
-﻿import { apiFetch } from "./client";
-import type { UserProfile } from "@/types/user";
+﻿import { MeResponse } from "./auth";
+import { API_BASE, apiFetch } from "./client";
 
-// List all users
-export function listUsers() {
-  return apiFetch("/api/v1/users", { method: "GET" }) as Promise<UserProfile[]>;
-}
-
-// Create a new user profile (admin)
-export function createUserProfile(payload: Partial<UserProfile>) {
-  return apiFetch("/api/v1/users", {
+// register user (with FormData, optional photo)
+export async function register(formData: FormData) {
+  const res = await fetch(`${API_BASE}/api/users/register`, {
     method: "POST",
-    body: JSON.stringify(payload),
-  }) as Promise<UserProfile>;
+    body: formData, // ✅ FormData, browser sets Content-Type automatically
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+
+  let data: any;
+  if (contentType.includes("application/json")) {
+    data = await res.json();
+  } else {
+    data = await res.text();
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      typeof data === "string" ? data : data.message || "Register failed",
+    );
+  }
+
+  return data; // server response
 }
 
-// Update user profile by id
-export function updateUserProfile(
-  id: number | string,
-  payload: Partial<UserProfile>,
-) {
-  return apiFetch(`/api/v1/users/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  }) as Promise<UserProfile>;
-}
-
-// Delete user profile by id
-export function deleteUserProfile(id: number | string) {
-  return apiFetch(`/api/v1/users/${id}`, {
-    method: "DELETE",
-  }) as Promise<void>;
+export function updateMe(payload: FormData, token: string) {
+  return apiFetch<MeResponse>(
+    "/api/users/me",
+    {
+      method: "PUT",
+      body: payload, // FormData
+    },
+    token,
+  );
 }
 
 export type ProfilePayload = {
@@ -38,23 +43,7 @@ export type ProfilePayload = {
   phoneNumber?: string;
 };
 
-// Password change only
 export type ChangePasswordPayload = {
   currentPassword: string;
   newPassword: string;
 };
-
-export function getProfile(accessToken: string) {
-  return apiFetch("/api/auth/profile", { method: "GET" }, accessToken);
-}
-
-export function updateProfile(accessToken: string, payload: ProfilePayload) {
-  return apiFetch(
-    "/api/auth/profile",
-    {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    },
-    accessToken,
-  );
-}

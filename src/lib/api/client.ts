@@ -1,38 +1,57 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+/**
+ * Auth-aware fetch (JSON + FormData safe)
+ */
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
-  accessToken?: string | null,
+  token?: string | null,
 ): Promise<T> {
-  const headers = new Headers(options.headers);
+  const headers: HeadersInit = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
   }
 
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  }
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  console.log(`[API] ${options.method || "GET"} ${url}`);
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(url, {
     ...options,
     headers,
   });
 
-  const data = await res.json().catch(() => null);
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await res.json()
+    : await res.text();
 
   if (!res.ok) {
-    const msg =
-      data?.message || data?.error || `Request failed (${res.status})`;
-    throw new Error(msg);
+    console.error(`[API Error] ${res.status} ${url}`, data);
+    throw new Error(
+      data?.message ||
+        data?.error ||
+        data?.detail ||
+        `Request failed (${res.status})`,
+    );
   }
 
   return data as T;
 }
 
-export async function request<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status} - ${path}`);
+
+export async function api<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} - ${path}`);
+  }
+
   return res.json();
 }
+
