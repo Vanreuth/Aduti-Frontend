@@ -9,21 +9,20 @@ import {
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
-  Truck,
-  Shield,
-  RotateCcw,
-  Star,
   Minus,
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product, ProductVariant, ProductImage } from "@/types/api";
-import { getProductById } from "@/lib/api/product";
+import { getProductDetail } from "@/lib/api/product";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ProductGrid } from "@/components/shop/ProductGrid";
 
 const PLACEHOLDER_IMAGE = "/product/placeholder.svg";
 
@@ -40,6 +39,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -52,18 +52,31 @@ export default function ProductDetailPage() {
   const isInWishlist = product ? has(String(product.id)) : false;
 
   useEffect(() => {
+    let alive = true;
+
     const fetchProduct = async () => {
+      setLoading(true);
+      setProduct(null);
+      setRelatedProducts([]);
       try {
-        const found = await getProductById(String(id));
-        setProduct(found ?? null);
+        const data = await getProductDetail(String(id));
+        if (!alive) return;
+        setProduct(data.product ?? null);
+        setRelatedProducts(data.relatedProducts ?? []);
       } catch {
+        if (!alive) return;
         setProduct(null);
+        setRelatedProducts([]);
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     };
 
     fetchProduct();
+
+    return () => {
+      alive = false;
+    };
   }, [id]);
 
   const sizes = useMemo(
@@ -175,7 +188,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <section className="max-w-7xl mx-auto px-4 py-10">
+      <section className="max-w-7xl mx-auto px-4 py-10 space-y-12">
         <div className="flex items-center gap-2 text-xs text-zinc-500 mb-6">
           <Link href="/shop" className="hover:text-zinc-800">
             Shop
@@ -187,7 +200,7 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Image */}
           <div className="space-y-4">
-            <div className="relative aspect-3/4 rounded-3xl overflow-hidden bg-zinc-100">
+            <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-zinc-100">
               <Image
                 src={galleryImages[selectedImageIndex]}
                 alt={product.name}
@@ -266,29 +279,26 @@ export default function ProductDetailPage() {
           {/* Content */}
           <div className="space-y-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 mb-2">
-                {product.category?.name ?? "Product"}
-              </p>
-              <h1 className="text-3xl font-bold text-zinc-900">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.25em] font-semibold bg-zinc-900 text-white border-zinc-900">
+                  {product.category?.name ?? "Product"}
+                </Badge>
+                {product.brand ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-600"
+                  >
+                    {product.brand}
+                  </Badge>
+                ) : null}
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-zinc-900">
                 {product.name}
               </h1>
-              <div className="mt-2 text-sm text-zinc-500">
-                {product.brand ? <span>{product.brand}</span> : null}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className="h-4 w-4 fill-zinc-200 text-zinc-200"
-                />
-              ))}
-              <span className="text-xs text-zinc-500">No reviews yet</span>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold text-zinc-900">
+              <span className="text-2xl md:text-3xl font-extrabold text-zinc-900">
                 {showPriceRange
                   ? `$${minPrice.toFixed(2)} – $${maxPrice.toFixed(2)}`
                   : `$${minPrice.toFixed(2)}`}
@@ -299,6 +309,8 @@ export default function ProductDetailPage() {
               {product.description ||
                 "This is a high-quality product designed for comfort and style."}
             </p>
+
+            <Separator />
 
             {(sizes.length > 0 || colors.length > 0) && (
               <div className="space-y-4">
@@ -382,7 +394,7 @@ export default function ProductDetailPage() {
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <Button
-                className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full h-12"
+                className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full h-12 font-semibold"
                 onClick={handleAddToCart}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
@@ -408,30 +420,31 @@ export default function ProductDetailPage() {
                 />
               </Button>
             </div>
-
-            {/* Features */}
-            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-100">
-              <div className="text-center p-3 rounded-xl bg-white">
-                <Truck className="w-5 h-5 mx-auto mb-1.5 text-zinc-700" />
-                <p className="text-xs text-zinc-600 font-medium">
-                  Free Shipping
-                </p>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-white">
-                <Shield className="w-5 h-5 mx-auto mb-1.5 text-zinc-700" />
-                <p className="text-xs text-zinc-600 font-medium">
-                  Secure Pay
-                </p>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-white">
-                <RotateCcw className="w-5 h-5 mx-auto mb-1.5 text-zinc-700" />
-                <p className="text-xs text-zinc-600 font-medium">
-                  Easy Returns
-                </p>
-              </div>
-            </div>
           </div>
         </div>
+
+        {relatedProducts.length > 0 ? (
+          <div className="space-y-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                  You may also like
+                </p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900">
+                  Related products
+                </h2>
+              </div>
+              <Link href="/shop" className="text-sm text-zinc-500 hover:text-zinc-900">
+                View all
+              </Link>
+            </div>
+            <ProductGrid
+              products={relatedProducts}
+              gridClassName="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+              animated
+            />
+          </div>
+        ) : null}
       </section>
     </div>
   );

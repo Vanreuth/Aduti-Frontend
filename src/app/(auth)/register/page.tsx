@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 // Icons
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
-import { register } from "@/lib/api/auth";
+import { register } from "@/lib/api/user";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function SignupPage() {
     phoneNumber: "",
     address: "",
     bio: "",
-    photo: "",
+    photo: null as File | null,
     password: "",
     confirmPassword: "",
   });
@@ -45,18 +45,64 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  function handleChange(e) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   }
 
-  function getStrengthColor(v) {
+  function getStrengthColor(v: number) {
     if (v < 40) return "bg-red-500/20";
     if (v < 80) return "bg-yellow-500/20";
     return "bg-emerald-500/20";
   }
 
-  async function handleSignup(e) {
+  // async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
+  //   e.preventDefault();
+  //   setError("");
+
+  //   if (formData.password !== formData.confirmPassword) {
+  //     setError("Password and Confirm Password do not match.");
+  //     return;
+  //   }
+
+  //   setLoading(true);
+
+  //   try {
+  //     const body = new FormData();
+  //     body.append("username", formData.username.trim());
+  //     body.append("email", formData.email.trim());
+  //     body.append("password", formData.password);
+  //     body.append("confirmPassword", formData.confirmPassword);
+  //     if (formData.phoneNumber)
+  //       body.append("phoneNumber", formData.phoneNumber.trim());
+  //     if (formData.address) body.append("address", formData.address.trim());
+  //     if (formData.bio) body.append("bio", formData.bio.trim());
+  //     if (formData.photo) body.append("photo", formData.photo);
+
+  //     const res = await fetch("http://localhost:8080/api/users/register", {
+  //       method: "POST",
+  //       body: body, // ✅ FormData, browser sets Content-Type automatically
+  //     });
+
+  //     if (!res.ok) {
+  //       const errorData = await res.json();
+  //       throw new Error(errorData.message || "Register failed");
+  //     }
+
+  //     const data = await res.json();
+  //     console.log("Server response:", data);
+
+  //     router.push("/shop");
+  //   } catch (err) {
+  //     setError((err as Error)?.message || "Register failed");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
+
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
@@ -68,18 +114,21 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await register({
-        username: formData.username.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        phoneNumber: formData.phoneNumber?.trim() || "",
-        address: formData.address?.trim() || "",
-        bio: formData.bio?.trim() || "",
-        photo: formData.photo?.trim() || "",
-      });
+      const body = new FormData();
+      body.append("username", formData.username.trim());
+      body.append("email", formData.email.trim());
+      body.append("password", formData.password);
+      body.append("confirmPassword", formData.confirmPassword);
+      if (formData.phoneNumber)
+        body.append("phoneNumber", formData.phoneNumber.trim());
+      if (formData.address) body.append("address", formData.address.trim());
+      if (formData.bio) body.append("bio", formData.bio.trim());
+      if (formData.photo) body.append("photo", formData.photo);
 
-      router.push("/dashboard");
+      const data = await register(body);
+      console.log("Server response:", data);
+
+      router.push("/shop");
     } catch (err) {
       setError((err as Error)?.message || "Register failed");
     } finally {
@@ -99,7 +148,7 @@ export default function SignupPage() {
   }, [formData.password]);
 
   return (
-    <div className="relative min-h-screen w-full bg-linear-to-br px-6 py-10">
+    <div className="relative w-full bg-linear-to-br px-6 py-10">
       <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-white/95 shadow-2xl">
         <Card className="border-0 bg-transparent shadow-none">
           <CardHeader className="space-y-2 px-10 pt-10">
@@ -276,18 +325,32 @@ export default function SignupPage() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-1">
-                <div className="grid gap-2">
-                  <Label htmlFor="photo">Photo </Label>
+                <div className="grid gap-2 ">
+                  <Label htmlFor="photo">Photo</Label>
                   <Input
                     id="photo"
-                    type="url"
-                    placeholder="https://example.com/avatar.jpg"
-                    value={formData.photo}
-                    onChange={handleChange}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          photo: e.target.files![0],
+                        }));
+                      }
+                    }}
                     disabled={loading}
                     className="h-11"
                   />
+                  {formData.photo && (
+                    <img
+                      src={URL.createObjectURL(formData.photo)}
+                      alt="Preview"
+                      className="mt-2 h-20 w-20 rounded-full object-cover"
+                    />
+                  )}
                 </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="bio">Bio</Label>
                   <Textarea

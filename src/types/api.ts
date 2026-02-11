@@ -49,6 +49,11 @@ export type Product = {
   variants: ProductVariant[];
 };
 
+export type CreateProductData = {
+  name: string;
+  description: string;
+}
+
 export type ProductListData = {
   products: Product[];
   pageNumber: number;
@@ -56,4 +61,9 @@ export type ProductListData = {
   totalElements: number;
   totalPages: number;
   last: boolean;
+};
+
+export type ProductDetailData = {
+  product: Product;
+  relatedProducts: Product[];
 };
