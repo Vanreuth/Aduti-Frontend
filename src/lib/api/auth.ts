@@ -12,24 +12,39 @@ export type MeResponse = {
 };
 
 export type LoginResponse = {
-  token: string;
   user: MeResponse;
 };
 
+// export async function loginApi(data: {
+//   email: string;
+//   password: string;
+// }): Promise<LoginResponse> {
+//   const res = await apiFetch<LoginResponse>("/api/auth/login", {
+//     method: "POST",
+//     body: JSON.stringify(data),
+//   });
+
+//   return res;
+// }
+
 export async function loginApi(data: {
-  username: string;
+  email: string;
   password: string;
 }): Promise<LoginResponse> {
-  const res = await apiFetch<LoginResponse>("/api/auth/login", {
+  return apiFetch<LoginResponse>("/api/auth/login", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(data),
   });
-
-  return res;
 }
 
-export function getMe(token: string) {
-  return apiFetch<MeResponse>("/api/auth/me", { method: "GET" }, token);
+export function getMe() {
+  return apiFetch<MeResponse>("/api/auth/me", {
+    method: "GET",
+    credentials: "include", // ✅ correct
+  });
 }
 
 export function logout() {

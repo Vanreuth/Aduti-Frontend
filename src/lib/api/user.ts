@@ -26,15 +26,12 @@ export async function register(formData: FormData) {
   return data; // server response
 }
 
-export function updateMe(payload: FormData, token: string) {
-  return apiFetch<MeResponse>(
-    "/api/users/me",
-    {
-      method: "PUT",
-      body: payload, // FormData
-    },
-    token,
-  );
+export function updateMe(payload: FormData) {
+  return apiFetch<MeResponse>("/api/users/me", {
+    method: "PUT",
+    body: payload,
+    credentials: "include", // FormData
+  });
 }
 
 export type ProfilePayload = {

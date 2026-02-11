@@ -172,7 +172,7 @@ const Icons = {
 };
 
 export default function ProfilePage() {
-  const { user, accessToken, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -222,7 +222,6 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken) return;
 
     if (
       formData.newPassword &&
@@ -254,7 +253,7 @@ export default function ProfilePage() {
 
     try {
       setSaving(true);
-      await updateMe(fd, accessToken);
+      await updateMe(fd);
       setSuccess("Profile updated successfully!");
     } catch (err: any) {
       setError(err.message || "Update failed");
