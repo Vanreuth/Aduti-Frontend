@@ -23,45 +23,44 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
-  const { user, loading: authLoading, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  const [error, setError] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const isBusy = authLoading || submitting;
+  const [error, setError] = useState("");
+  const [isBusy, setIsBusy] = useState(false);
 
   const canSubmit = useMemo(() => {
-    return username.trim().length > 0 && password.length > 0 && !isBusy;
+    return username.trim() !== "" && password.trim() !== "" && !isBusy;
   }, [username, password, isBusy]);
+
+  useEffect(() => {
+    if (user) {
+      router.push(redirectTo);
+    }
+  }, [user, router, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSubmitting(true);
+    if (!canSubmit) return;
 
     try {
+      setIsBusy(true);
+      setError("");
       await apiFetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-        }),
+        body: JSON.stringify({ username, password }),
       });
       await refreshUser();
-
-      router.replace("/shop");
+      router.push(redirectTo);
     } catch (err: any) {
       setError(err.message || "Login failed");
-    } finally {
-      setSubmitting(false);
     }
+    setIsBusy(false);
   };
 
   return (
