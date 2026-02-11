@@ -91,11 +91,21 @@ export type ProductCreatePayload = {
   }>;
 };
 
-export type ProductUpdatePayload = ProductCreatePayload;
+export type ProductUpdatePayload = Omit<ProductCreatePayload, "variants"> & {
+  variants: Array<{
+    id?: number;
+    size: string;
+    color: string;
+    sku: string;
+    stockQuantity: number;
+    priceAdjustment: number;
+  }>;
+};
 
 export async function createProduct(
   payload: ProductCreatePayload,
   variantImages: File[][],
+  accessToken?: string | null,
 ) {
   if (!API_BASE) {
     throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
@@ -110,8 +120,13 @@ export async function createProduct(
     });
   });
 
+  const headers: HeadersInit = accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
+    : {};
+
   const res = await fetch(`${API_BASE}/api/products`, {
     method: "POST",
+    headers,
     body: formData,
   });
 
@@ -130,6 +145,7 @@ export async function updateProduct(
   id: number,
   payload: ProductUpdatePayload,
   variantImages: File[][],
+  accessToken?: string | null,
 ) {
   if (!API_BASE) {
     throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
@@ -144,8 +160,13 @@ export async function updateProduct(
     });
   });
 
+  const headers: HeadersInit = accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
+    : {};
+
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: "PUT",
+    headers,
     body: formData,
   });
 
@@ -160,13 +181,18 @@ export async function updateProduct(
   return data as ApiResponse<Product>;
 }
 
-export async function deleteProduct(id: number) {
+export async function deleteProduct(id: number, accessToken?: string | null) {
   if (!API_BASE) {
     throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
   }
 
+  const headers: HeadersInit = accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
+    : {};
+
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: "DELETE",
+    headers,
   });
 
   const data = await res.json().catch(() => null);

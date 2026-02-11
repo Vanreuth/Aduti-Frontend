@@ -6,6 +6,14 @@ import { Edit, Eye, MoreHorizontal, Package, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -22,12 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -48,6 +51,7 @@ import {
   TableFilters,
   type TableFilterConfig,
 } from "@/components/dashboard/table-filters";
+import { useAuth } from "@/context/AuthContext";
 import type { Category, Product } from "@/types/api";
 import {
   createProduct,
@@ -56,8 +60,10 @@ import {
   getProductById,
   updateProduct,
   type ProductCreatePayload,
+  type ProductUpdatePayload,
 } from "@/lib/api/product";
 import { getAllCategories } from "@/lib/api/category";
+import { toast } from "sonner";
 
 type ProductStatus = "Active" | "Inactive";
 
@@ -70,6 +76,8 @@ interface ProductRow {
   stock: number;
   status: ProductStatus;
   createdAt: string;
+  createdByUsername?: string | null;
+  createdByPhoto?: string | null;
   imageUrl?: string;
   brand?: string | null;
   description?: string | null;
@@ -77,6 +85,7 @@ interface ProductRow {
 }
 
 type VariantForm = {
+  id?: number;
   size: string;
   color: string;
   sku: string;
@@ -161,6 +170,8 @@ function toProductRow(product: Product): ProductRow {
     stock,
     status: product.isActive ? "Active" : "Inactive",
     createdAt: toDateInputValue(product.createdAt),
+    createdByUsername: product.createdByUsername ?? null,
+    createdByPhoto: product.createdByPhoto ?? null,
     imageUrl,
     brand: product.brand ?? null,
     description: product.description ?? null,
@@ -168,7 +179,12 @@ function toProductRow(product: Product): ProductRow {
   };
 }
 
+function getVariantTabValue(index: number) {
+  return `variant-${index}`;
+}
+
 export default function ProductDataTable() {
+  const { accessToken } = useAuth();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -198,12 +214,17 @@ export default function ProductDataTable() {
     null,
   );
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
-  const [detailImage, setDetailImage] = useState<string | null>(null);
+  const [detailCarouselApi, setDetailCarouselApi] = useState<
+    CarouselApi | undefined
+  >(undefined);
+  const [detailActiveImageIndex, setDetailActiveImageIndex] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formTab, setFormTab] = useState("general");
+  const [variantTab, setVariantTab] = useState("variant-0");
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     sku: "",
@@ -216,6 +237,7 @@ export default function ProductDataTable() {
     createdAt: new Date().toISOString().split("T")[0],
     variants: [
       {
+        id: undefined,
         size: "",
         color: "",
         sku: "",
@@ -308,6 +330,7 @@ export default function ProductDataTable() {
   };
 
   const createEmptyVariant = (): VariantForm => ({
+    id: undefined,
     size: "",
     color: "",
     sku: "",
@@ -324,16 +347,39 @@ export default function ProductDataTable() {
         if (image.imageUrl) urls.push(image.imageUrl);
       }
     }
-    return urls;
+    return Array.from(new Set(urls));
   }, [detailProduct]);
 
   useEffect(() => {
-    if (detailImages.length > 0) {
-      setDetailImage((prev) => prev ?? detailImages[0]);
-    } else {
-      setDetailImage(null);
+    if (!detailImages.length) {
+      setDetailActiveImageIndex(0);
+      return;
     }
-  }, [detailImages, detailImage]);
+    const maxIndex = detailImages.length - 1;
+    setDetailActiveImageIndex((prev) => Math.min(prev, maxIndex));
+  }, [detailImages]);
+
+  useEffect(() => {
+    if (!detailCarouselApi) return;
+
+    const onSelect = () => {
+      setDetailActiveImageIndex(detailCarouselApi.selectedScrollSnap());
+    };
+
+    onSelect();
+    detailCarouselApi.on("select", onSelect);
+    detailCarouselApi.on("reInit", onSelect);
+
+    return () => {
+      detailCarouselApi.off("select", onSelect);
+      detailCarouselApi.off("reInit", onSelect);
+    };
+  }, [detailCarouselApi]);
+
+  useEffect(() => {
+    if (!detailCarouselApi || !detailImages.length) return;
+    detailCarouselApi.scrollTo(detailActiveImageIndex, true);
+  }, [detailActiveImageIndex, detailCarouselApi, detailImages.length]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -380,7 +426,7 @@ export default function ProductDataTable() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     if (
@@ -458,6 +504,8 @@ export default function ProductDataTable() {
     setModalMode("add");
     setSelectedProduct(null);
     setFormError(null);
+    setFormTab("general");
+    setVariantTab(getVariantTabValue(0));
     setFormData({
       name: "",
       sku: "",
@@ -477,10 +525,13 @@ export default function ProductDataTable() {
     setModalMode("edit");
     setSelectedProduct(product);
     setFormError(null);
+    setFormTab("general");
+    setVariantTab(getVariantTabValue(0));
     const productCategoryId = product.product.category?.id
       ? String(product.product.category.id)
       : "";
     const variants = (product.product.variants ?? []).map((variant) => ({
+      id: variant.id,
       size: variant.size ?? "",
       color: variant.color ?? "",
       sku: variant.sku ?? "",
@@ -513,7 +564,7 @@ export default function ProductDataTable() {
     setDetailLoading(true);
     setDetailError(null);
     setDetailProduct(null);
-    setDetailImage(null);
+    setDetailActiveImageIndex(0);
     setIsDetailModalOpen(true);
     try {
       const data = await getProductById(product.id);
@@ -521,9 +572,13 @@ export default function ProductDataTable() {
         throw new Error("Product not found");
       }
       setDetailProduct(data);
-      setDetailImage(getPrimaryImage(data) ?? null);
+      setDetailActiveImageIndex(0);
     } catch (err: any) {
-      setDetailError(err?.message ?? "Failed to load product details");
+      const message = err?.message ?? "Failed to load product details";
+      setDetailError(message);
+      toast.error("Failed to load product details", {
+        description: message,
+      });
     } finally {
       setDetailLoading(false);
     }
@@ -532,23 +587,34 @@ export default function ProductDataTable() {
   const addVariant = () => {
     setFormData((prev) => {
       if (prev.variants.length >= 5) return prev;
-      return { ...prev, variants: [...prev.variants, createEmptyVariant()] };
+      const nextVariants = [...prev.variants, createEmptyVariant()];
+      setVariantTab(getVariantTabValue(nextVariants.length - 1));
+      return { ...prev, variants: nextVariants };
     });
+    setFormTab("variants");
   };
 
   const removeVariant = (index: number) => {
-    setFormData((prev) => {
-      if (prev.variants.length <= 1) return prev;
-      return {
-        ...prev,
-        variants: prev.variants.filter((_, idx) => idx !== index),
-      };
+    if (formData.variants.length <= 1) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, idx) => idx !== index),
+    }));
+
+    setVariantTab((prev) => {
+      const activeIndex = Number.parseInt(prev.replace("variant-", ""), 10);
+      if (Number.isNaN(activeIndex)) return getVariantTabValue(0);
+      if (activeIndex === index)
+        return getVariantTabValue(Math.max(0, index - 1));
+      if (activeIndex > index) return getVariantTabValue(activeIndex - 1);
+      return prev;
     });
   };
 
   const updateVariant = (
     index: number,
-    field: keyof VariantForm,
+    field: Exclude<keyof VariantForm, "id">,
     value: string | File[],
   ) => {
     setFormData((prev) => {
@@ -558,25 +624,110 @@ export default function ProductDataTable() {
     });
   };
 
+  useEffect(() => {
+    const activeIndex = Number.parseInt(variantTab.replace("variant-", ""), 10);
+    if (Number.isNaN(activeIndex) || activeIndex < 0) {
+      setVariantTab(getVariantTabValue(0));
+      return;
+    }
+    if (activeIndex >= formData.variants.length) {
+      setVariantTab(
+        getVariantTabValue(Math.max(0, formData.variants.length - 1)),
+      );
+    }
+  }, [formData.variants.length, variantTab]);
+
+  const validateVariants = () => {
+    const fallbackSku = formData.sku.trim().toUpperCase();
+    const fallbackStock = formData.stock.trim();
+
+    for (let index = 0; index < formData.variants.length; index += 1) {
+      const variant = formData.variants[index];
+      if (!variant.size.trim()) {
+        return { index, message: `Variant ${index + 1}: size is required.` };
+      }
+      if (!variant.color.trim()) {
+        return { index, message: `Variant ${index + 1}: color is required.` };
+      }
+
+      const skuValue =
+        variant.sku.trim().toUpperCase() || (index === 0 ? fallbackSku : "");
+      if (!skuValue) {
+        return {
+          index,
+          message: `Variant ${index + 1}: SKU is required (or set default SKU).`,
+        };
+      }
+
+      const stockInput =
+        variant.stockQuantity.trim() || (index === 0 ? fallbackStock : "0");
+      const stockValue = toNumber(stockInput, -1);
+      if (stockValue < 0) {
+        return {
+          index,
+          message: `Variant ${index + 1}: stock must be 0 or greater.`,
+        };
+      }
+    }
+
+    return null;
+  };
+
+  const variantMetrics = useMemo(() => {
+    const basePrice = toNumber(formData.price, 0);
+    if (!formData.variants.length) {
+      return {
+        totalStock: 0,
+        minPrice: basePrice,
+        maxPrice: basePrice,
+      };
+    }
+
+    let totalStock = 0;
+    let minPrice = Number.POSITIVE_INFINITY;
+    let maxPrice = Number.NEGATIVE_INFINITY;
+
+    formData.variants.forEach((variant, index) => {
+      const stockInput =
+        variant.stockQuantity.trim() || (index === 0 ? formData.stock : "0");
+      totalStock += Math.max(0, toNumber(stockInput, 0));
+
+      const candidatePrice = basePrice + toNumber(variant.priceAdjustment, 0);
+      minPrice = Math.min(minPrice, candidatePrice);
+      maxPrice = Math.max(maxPrice, candidatePrice);
+    });
+
+    return {
+      totalStock,
+      minPrice: Number.isFinite(minPrice) ? minPrice : basePrice,
+      maxPrice: Number.isFinite(maxPrice) ? maxPrice : basePrice,
+    };
+  }, [formData.price, formData.stock, formData.variants]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError(null);
-    const baseProduct = selectedProduct?.product;
-    const nextId =
-      modalMode === "add" ? Date.now() : selectedProduct?.id ?? 1;
 
     if (modalMode === "add") {
       const categoryId = Number(formData.categoryId);
       if (!Number.isFinite(categoryId) || categoryId <= 0) {
         setFormError("Please select a category.");
+        setFormTab("general");
+        return;
+      }
+
+      const variantValidation = validateVariants();
+      if (variantValidation) {
+        setFormError(variantValidation.message);
+        setFormTab("variants");
+        setVariantTab(getVariantTabValue(variantValidation.index));
         return;
       }
 
       const variantsPayload = formData.variants.map((variant, index) => {
         const fallbackSku =
           index === 0 ? formData.sku.trim().toUpperCase() : "";
-        const fallbackStock =
-          index === 0 ? toNumber(formData.stock, 0) : 0;
+        const fallbackStock = index === 0 ? toNumber(formData.stock, 0) : 0;
         const stockQuantityValue = variant.stockQuantity.trim()
           ? toNumber(variant.stockQuantity, 0)
           : fallbackStock;
@@ -593,11 +744,7 @@ export default function ProductDataTable() {
       const priceValue = toNumber(formData.price);
       if (priceValue <= 0) {
         setFormError("Base price must be greater than 0.");
-        return;
-      }
-
-      if (!variantsPayload[0]?.sku) {
-        setFormError("Each variant must include a SKU.");
+        setFormTab("pricing");
         return;
       }
 
@@ -615,73 +762,46 @@ export default function ProductDataTable() {
         await createProduct(
           payload,
           formData.variants.map((variant) => variant.images),
+          accessToken,
         );
         setIsModalOpen(false);
         setCurrentPage(1);
         setRefreshKey((prev) => prev + 1);
+        toast.success("Product created", {
+          description: `${payload.name} has been added successfully.`,
+        });
       } catch (err: any) {
-        setFormError(err?.message ?? "Failed to create product");
+        const message = err?.message ?? "Failed to create product";
+        setFormError(message);
+        toast.error("Create product failed", {
+          description: message,
+        });
       } finally {
         setIsSubmitting(false);
       }
       return;
     }
 
-    const selectedCategory = categories.find(
-      (category) => String(category.id) === formData.categoryId,
-    );
-
-    const nextProduct: ProductRow = {
-      id: nextId,
-      name: formData.name.trim(),
-      sku: formData.sku.trim().toUpperCase(),
-      category:
-        categories.find((category) => String(category.id) === formData.categoryId)
-          ?.name ?? "Uncategorized",
-      price: toNumber(formData.price),
-      stock: toNumber(formData.stock),
-      status: formData.status,
-      createdAt: formData.createdAt,
-      imageUrl: baseProduct ? getPrimaryImage(baseProduct) ?? undefined : undefined,
-      brand: baseProduct?.brand ?? null,
-      description: baseProduct?.description ?? null,
-      product: {
-        id: baseProduct?.id ?? nextId,
-        name: formData.name.trim(),
-        description: formData.description.trim() || baseProduct?.description || "",
-        price: toNumber(formData.price),
-        brand: formData.brand.trim() || baseProduct?.brand || "",
-        isActive: formData.status === "Active",
-        createdAt: formData.createdAt,
-        updatedAt: baseProduct?.updatedAt ?? null,
-        category:
-          selectedCategory ??
-          baseProduct?.category ?? {
-            id: 0,
-            name: "Uncategorized",
-            slug: "",
-            description: null,
-            isActive: true,
-            createdAt: null,
-            updatedAt: null,
-            productCount: null,
-          },
-        variants: baseProduct?.variants ?? [],
-      },
-    };
-
     if (modalMode === "edit" && selectedProduct) {
       const categoryId = Number(formData.categoryId);
       if (!Number.isFinite(categoryId) || categoryId <= 0) {
         setFormError("Please select a category.");
+        setFormTab("general");
+        return;
+      }
+
+      const variantValidation = validateVariants();
+      if (variantValidation) {
+        setFormError(variantValidation.message);
+        setFormTab("variants");
+        setVariantTab(getVariantTabValue(variantValidation.index));
         return;
       }
 
       const variantsPayload = formData.variants.map((variant, index) => {
         const fallbackSku =
           index === 0 ? formData.sku.trim().toUpperCase() : "";
-        const fallbackStock =
-          index === 0 ? toNumber(formData.stock, 0) : 0;
+        const fallbackStock = index === 0 ? toNumber(formData.stock, 0) : 0;
         const stockQuantityValue = variant.stockQuantity.trim()
           ? toNumber(variant.stockQuantity, 0)
           : fallbackStock;
@@ -698,21 +818,22 @@ export default function ProductDataTable() {
       const priceValue = toNumber(formData.price);
       if (priceValue <= 0) {
         setFormError("Base price must be greater than 0.");
+        setFormTab("pricing");
         return;
       }
 
-      if (!variantsPayload[0]?.sku) {
-        setFormError("Each variant must include a SKU.");
-        return;
-      }
-
-      const payload: ProductCreatePayload = {
+      const payload: ProductUpdatePayload = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         price: priceValue,
         brand: formData.brand.trim() || undefined,
         categoryId,
-        variants: variantsPayload,
+        variants: variantsPayload.map((variant, index) => {
+          const variantId = formData.variants[index]?.id;
+          return typeof variantId === "number"
+            ? { id: variantId, ...variant }
+            : variant;
+        }),
       };
 
       try {
@@ -721,11 +842,19 @@ export default function ProductDataTable() {
           selectedProduct.id,
           payload,
           formData.variants.map((variant) => variant.images),
+          accessToken,
         );
         setIsModalOpen(false);
         setRefreshKey((prev) => prev + 1);
+        toast.success("Product updated", {
+          description: `${payload.name} has been updated successfully.`,
+        });
       } catch (err: any) {
-        setFormError(err?.message ?? "Failed to update product");
+        const message = err?.message ?? "Failed to update product";
+        setFormError(message);
+        toast.error("Update product failed", {
+          description: message,
+        });
       } finally {
         setIsSubmitting(false);
       }
@@ -743,11 +872,18 @@ export default function ProductDataTable() {
 
     try {
       setIsDeleting(true);
-      await deleteProduct(selectedProduct.id);
+      await deleteProduct(selectedProduct.id, accessToken);
       setIsDeleteModalOpen(false);
       setRefreshKey((prev) => prev + 1);
+      toast.success("Product deleted", {
+        description: `${selectedProduct.name} has been deleted.`,
+      });
     } catch (err: any) {
-      setError(err?.message ?? "Failed to delete product");
+      const message = err?.message ?? "Failed to delete product";
+      setError(message);
+      toast.error("Delete product failed", {
+        description: message,
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -762,6 +898,9 @@ export default function ProductDataTable() {
     if (stock <= 15) return "secondary";
     return "outline";
   };
+
+  const detailPrimaryImage =
+    detailImages[detailActiveImageIndex] ?? "/product/placeholder.svg";
 
   return (
     <div className="w-full space-y-4">
@@ -799,20 +938,21 @@ export default function ProductDataTable() {
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   Loading products...
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-destructive"
                 >
                   {error}
@@ -855,7 +995,9 @@ export default function ProductDataTable() {
                   <TableCell>
                     <Badge variant="outline">{product.category}</Badge>
                   </TableCell>
-                  <TableCell>{currencyFormatter.format(product.price)}</TableCell>
+                  <TableCell>
+                    {currencyFormatter.format(product.price)}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={getStockBadgeVariant(product.stock)}>
                       {product.stock}
@@ -867,6 +1009,22 @@ export default function ProductDataTable() {
                     </Badge>
                   </TableCell>
                   <TableCell>{formatDate(product.createdAt)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      {product.createdByPhoto ? (
+                        <img
+                          src={product.createdByPhoto}
+                          alt={product.createdByUsername || "User"}
+                          className="h-7 w-7 rounded-full border object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full border bg-muted text-[10px] font-semibold uppercase text-muted-foreground">
+                          {(product.createdByUsername || "?").slice(0, 2)}
+                        </div>
+                      )}
+                      <span>{product.createdByUsername || "—"}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -914,7 +1072,7 @@ export default function ProductDataTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No products found
                 </TableCell>
               </TableRow>
@@ -937,13 +1095,14 @@ export default function ProductDataTable() {
           setIsDetailModalOpen(open);
           if (!open) {
             setDetailProduct(null);
-            setDetailImage(null);
+            setDetailCarouselApi(undefined);
+            setDetailActiveImageIndex(0);
             setDetailError(null);
             setDetailLoading(false);
           }
         }}
       >
-        <DialogContent className="sm:max-w-[760px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[900px]">
           <DialogHeader>
             <DialogTitle>Product Details</DialogTitle>
             <DialogDescription>
@@ -961,41 +1120,84 @@ export default function ProductDataTable() {
             </div>
           ) : detailProduct ? (
             <div className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-[200px,1fr]">
+              <div className="grid gap-6 lg:grid-cols-[340px,1fr]">
                 <div className="space-y-3">
-                  <div className="relative h-[240px] w-full max-w-[200px] overflow-hidden rounded-xl border bg-muted shadow-sm">
-                    <Image
-                      src={detailImage ?? "/product/placeholder.svg"}
-                      alt={detailProduct.name}
-                      fill
-                      sizes="200px"
-                      className="object-cover"
-                    />
-                  </div>
-                  {detailImages.length > 1 ? (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {detailImages.map((image) => (
-                        <button
-                          key={image}
-                          type="button"
-                          onClick={() => setDetailImage(image)}
-                          className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-md border ${
-                            detailImage === image
-                              ? "ring-2 ring-primary"
-                              : "hover:border-primary/60"
-                          }`}
-                        >
-                          <Image
-                            src={image}
-                            alt={`${detailProduct.name} thumbnail`}
-                            fill
-                            sizes="40px"
-                            className="object-cover"
-                          />
-                        </button>
-                      ))}
+                  {detailImages.length > 0 ? (
+                    <div className="space-y-3">
+                      <Carousel
+                        setApi={setDetailCarouselApi}
+                        opts={{ loop: detailImages.length > 1 }}
+                        className="mx-10"
+                      >
+                        <CarouselContent>
+                          {detailImages.map((image, index) => (
+                            <CarouselItem key={`${image}-${index}`}>
+                              <div className="relative h-[45vh] w-full overflow-hidden rounded-xl border bg-muted shadow-sm">
+                                <Image
+                                  src={image}
+                                  alt={`${detailProduct.name} image ${index + 1}`}
+                                  fill
+                                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 70vw, 600px"
+                                  className="object-cover"
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        {detailImages.length > 1 ? (
+                          <>
+                            <CarouselPrevious className="-left-9 h-9 w-9" />
+                            <CarouselNext className="-right-9 h-9 w-9" />
+                          </>
+                        ) : null}
+                      </Carousel>
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{detailImages.length} image(s)</span>
+                        <span>
+                          {detailActiveImageIndex + 1} / {detailImages.length}
+                        </span>
+                      </div>
+
+                      {detailImages.length > 1 ? (
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {detailImages.map((image, index) => (
+                            <button
+                              key={`${image}-thumb-${index}`}
+                              type="button"
+                              onClick={() => {
+                                setDetailActiveImageIndex(index);
+                                detailCarouselApi?.scrollTo(index);
+                              }}
+                              className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-md border transition ${
+                                detailActiveImageIndex === index
+                                  ? "ring-2 ring-primary"
+                                  : "hover:border-primary/60"
+                              }`}
+                            >
+                              <Image
+                                src={image}
+                                alt={`${detailProduct.name} thumbnail ${index + 1}`}
+                                fill
+                                sizes="56px"
+                                className="object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl border bg-muted shadow-sm">
+                      <Image
+                        src={detailPrimaryImage}
+                        alt={detailProduct.name}
+                        fill
+                        sizes="(max-width: 640px) 80vw, 300px"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-5">
@@ -1021,14 +1223,16 @@ export default function ProductDataTable() {
                       </div>
                     </div>
                     <div className="rounded-lg border bg-muted/30 px-3 py-2 text-right">
-                      <p className="text-xs text-muted-foreground">Base Price</p>
+                      <p className="text-xs text-muted-foreground">
+                        Base Price
+                      </p>
                       <p className="text-lg font-semibold">
                         {currencyFormatter.format(detailProduct.price)}
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {detailProduct.description || "No description provided."}
                   </p>
 
@@ -1045,6 +1249,23 @@ export default function ProductDataTable() {
                         {formatDate(detailProduct.updatedAt)}
                       </p>
                     </div>
+                    <div className="rounded-md border bg-muted/30 p-3">
+                      <p className="text-xs text-muted-foreground">Variants</p>
+                      <p className="font-medium">
+                        {detailProduct.variants?.length ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Total Stock
+                      </p>
+                      <p className="font-medium">
+                        {(detailProduct.variants ?? []).reduce(
+                          (sum, variant) => sum + (variant.stockQuantity ?? 0),
+                          0,
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1056,7 +1277,7 @@ export default function ProductDataTable() {
                     {detailProduct.variants?.length ?? 0} variants
                   </span>
                 </div>
-                <div className="rounded-md border max-h-[240px] overflow-auto">
+                <div className="max-h-[280px] overflow-auto rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1069,7 +1290,8 @@ export default function ProductDataTable() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {detailProduct.variants && detailProduct.variants.length ? (
+                      {detailProduct.variants &&
+                      detailProduct.variants.length ? (
                         detailProduct.variants.map((variant) => (
                           <TableRow key={variant.id}>
                             <TableCell className="font-medium">
@@ -1112,7 +1334,10 @@ export default function ProductDataTable() {
             </div>
           )}
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDetailModalOpen(false)}
+            >
               Close
             </Button>
             <Button
@@ -1157,62 +1382,56 @@ export default function ProductDataTable() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[820px]">
           <DialogHeader>
             <DialogTitle>
               {modalMode === "add" ? "Add New Product" : "Edit Product"}
             </DialogTitle>
             <DialogDescription>
               {modalMode === "add"
-                ? "Create a new product entry"
-                : "Update product information"}
+                ? "Create a new product with variants, pricing, and media."
+                : "Update product information, variant setup, and media."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-5 py-4">
               {formError ? (
-                <p className="text-sm text-destructive">{formError}</p>
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {formError}
+                </div>
               ) : null}
 
-              <Tabs defaultValue="info" className="space-y-4">
-                <TabsList className="w-full">
-                  <TabsTrigger value="info" className="flex-1">
-                    Info
+              <Tabs
+                value={formTab}
+                onValueChange={setFormTab}
+                className="space-y-4"
+              >
+                <TabsList className="grid h-auto w-full grid-cols-3">
+                  <TabsTrigger value="general" className="py-2">
+                    General
                   </TabsTrigger>
-                  <TabsTrigger value="variants" className="flex-1">
+                  <TabsTrigger value="pricing" className="py-2">
+                    Pricing
+                  </TabsTrigger>
+                  <TabsTrigger value="variants" className="py-2">
                     Variants
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="info">
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Product Name</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            description: e.target.value,
-                          })
-                        }
-                        placeholder="Add a short product description"
-                        className="min-h-[90px]"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                <TabsContent value="general" className="space-y-4">
+                  <div className="rounded-lg border bg-muted/20 p-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor="name">Product Name</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
                       <div className="grid gap-2">
                         <Label htmlFor="brand">Brand</Label>
                         <Input
@@ -1254,7 +1473,30 @@ export default function ProductDataTable() {
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                  </div>
+
+                  <div className="rounded-lg border bg-muted/10 p-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            description: e.target.value,
+                          })
+                        }
+                        placeholder="Add a short product description"
+                        className="min-h-[110px]"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="pricing" className="space-y-4">
+                  <div className="rounded-lg border bg-muted/20 p-4">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <div className="grid gap-2">
                         <Label htmlFor="price">Base Price</Label>
                         <Input
@@ -1289,26 +1531,19 @@ export default function ProductDataTable() {
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="variants">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="sku">Default SKU (optional)</Label>
+                        <Label htmlFor="sku">Default SKU</Label>
                         <Input
                           id="sku"
                           value={formData.sku}
                           onChange={(e) =>
                             setFormData({ ...formData, sku: e.target.value })
                           }
-                          placeholder="Used if variant SKU is empty"
+                          placeholder="Used if first variant SKU is empty"
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="stock">Default Stock (optional)</Label>
+                        <Label htmlFor="stock">Default Stock</Label>
                         <Input
                           id="stock"
                           type="number"
@@ -1318,162 +1553,238 @@ export default function ProductDataTable() {
                           onChange={(e) =>
                             setFormData({ ...formData, stock: e.target.value })
                           }
-                          placeholder="Used if variant stock is empty"
+                          placeholder="Used if first variant stock is empty"
                         />
                       </div>
                     </div>
+                  </div>
 
-                    <div className="space-y-3 rounded-md border bg-muted/20 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold">Variants</p>
-                          <p className="text-xs text-muted-foreground">
-                            Add up to 5 variants. Images are optional.
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addVariant}
-                          disabled={formData.variants.length >= 5}
-                        >
-                          Add Variant
-                        </Button>
-                      </div>
-
-                      <div className="space-y-4">
-                        {formData.variants.map((variant, index) => (
-                          <div
-                            key={`variant-${index}`}
-                            className="rounded-md border bg-background p-4"
-                          >
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium">
-                                Variant {index + 1}
-                              </p>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeVariant(index)}
-                                disabled={formData.variants.length === 1}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                              <div className="grid gap-2">
-                                <Label>Size</Label>
-                                <Input
-                                  value={variant.size}
-                                  onChange={(e) =>
-                                    updateVariant(index, "size", e.target.value)
-                                  }
-                                  required
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Color</Label>
-                                <Input
-                                  value={variant.color}
-                                  onChange={(e) =>
-                                    updateVariant(index, "color", e.target.value)
-                                  }
-                                  required
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>SKU</Label>
-                                <Input
-                                  value={variant.sku}
-                                  onChange={(e) =>
-                                    updateVariant(index, "sku", e.target.value)
-                                  }
-                                  required
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Stock</Label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step="1"
-                                  value={variant.stockQuantity}
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      index,
-                                      "stockQuantity",
-                                      e.target.value,
-                                    )
-                                  }
-                                  required
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Price Adjustment</Label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={variant.priceAdjustment}
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      index,
-                                      "priceAdjustment",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Images</Label>
-                                <Input
-                                  type="file"
-                                  multiple
-                                  accept="image/*"
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      index,
-                                      "images",
-                                      Array.from(e.target.files ?? []),
-                                    )
-                                  }
-                                />
-                                {variant.images.length > 0 ? (
-                                  <p className="text-xs text-muted-foreground">
-                                    {variant.images.length} file(s) selected
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-md border bg-muted/10 p-3">
+                      <p className="text-xs text-muted-foreground">Variants</p>
+                      <p className="text-lg font-semibold">
+                        {formData.variants.length}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/10 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Total Stock
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {variantMetrics.totalStock}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/10 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Price Range
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {currencyFormatter.format(variantMetrics.minPrice)} -{" "}
+                        {currencyFormatter.format(variantMetrics.maxPrice)}
+                      </p>
                     </div>
                   </div>
                 </TabsContent>
+
+                <TabsContent value="variants" className="space-y-4">
+                  <div className="rounded-lg border bg-muted/20 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">Variant Setup</p>
+                        <p className="text-xs text-muted-foreground">
+                          Add up to 5 variants and attach images for each one.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addVariant}
+                        disabled={formData.variants.length >= 5}
+                      >
+                        Add Variant
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Tabs
+                    value={variantTab}
+                    onValueChange={setVariantTab}
+                    className="space-y-4"
+                  >
+                    <div className="overflow-x-auto pb-1">
+                      <TabsList className="h-auto w-max min-w-full gap-1 p-1">
+                        {formData.variants.map((_, index) => (
+                          <TabsTrigger
+                            key={getVariantTabValue(index)}
+                            value={getVariantTabValue(index)}
+                            className="min-w-[120px] py-2"
+                          >
+                            Variant {index + 1}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
+
+                    {formData.variants.map((variant, index) => (
+                      <TabsContent
+                        key={`variant-content-${index}`}
+                        value={getVariantTabValue(index)}
+                      >
+                        <div className="space-y-4 rounded-lg border bg-background p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium">
+                              Variant {index + 1} Details
+                            </p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeVariant(index)}
+                              disabled={formData.variants.length === 1}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                              <Label>Size</Label>
+                              <Input
+                                value={variant.size}
+                                onChange={(e) =>
+                                  updateVariant(index, "size", e.target.value)
+                                }
+                                placeholder="e.g. M"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Color</Label>
+                              <Input
+                                value={variant.color}
+                                onChange={(e) =>
+                                  updateVariant(index, "color", e.target.value)
+                                }
+                                placeholder="e.g. Black"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>SKU</Label>
+                              <Input
+                                value={variant.sku}
+                                onChange={(e) =>
+                                  updateVariant(index, "sku", e.target.value)
+                                }
+                                placeholder={
+                                  index === 0
+                                    ? "Falls back to default SKU if empty"
+                                    : "Required"
+                                }
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Stock</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={variant.stockQuantity}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    index,
+                                    "stockQuantity",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={
+                                  index === 0
+                                    ? "Falls back to default stock if empty"
+                                    : "0"
+                                }
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Price Adjustment</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={variant.priceAdjustment}
+                                onChange={(e) =>
+                                  updateVariant(
+                                    index,
+                                    "priceAdjustment",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Images</Label>
+                              <Input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={(e) =>
+                                  updateVariant(
+                                    index,
+                                    "images",
+                                    Array.from(e.target.files ?? []),
+                                  )
+                                }
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                {variant.images.length
+                                  ? `${variant.images.length} file(s) selected`
+                                  : "No images selected"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-md border bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                            Final price preview:{" "}
+                            <span className="font-semibold text-foreground">
+                              {currencyFormatter.format(
+                                toNumber(formData.price, 0) +
+                                  toNumber(variant.priceAdjustment, 0),
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </TabsContent>
               </Tabs>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Saving..."
-                  : modalMode === "add"
-                    ? "Add Product"
-                    : "Save Changes"}
-              </Button>
+            <DialogFooter className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                {formData.variants.length}/5 variants configured
+              </p>
+              <div className="flex w-full gap-2 sm:w-auto">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="flex-1 sm:flex-none"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 sm:flex-none"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? "Saving..."
+                    : modalMode === "add"
+                      ? "Add Product"
+                      : "Save Changes"}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1492,7 +1803,11 @@ export default function ProductDataTable() {
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>

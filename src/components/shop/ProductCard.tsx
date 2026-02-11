@@ -113,184 +113,170 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <>
-      <Card className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0 gap-0 shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-xl focus-within:ring-2 focus-within:ring-zinc-900/10">
-        {/* Clickable Image Area - Opens Quick View */}
-        <div
-          className="relative aspect-[4/3] bg-white cursor-pointer"
-          onClick={() => setQuickOpen(true)}
+<Card className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0 gap-0 shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-xl focus-within:ring-2 focus-within:ring-zinc-900/10">
+  {/* Clickable Image Area - Opens Quick View */}
+  <div
+    className="relative aspect-[4/5] bg-zinc-50 cursor-pointer overflow-hidden"
+    onClick={() => setQuickOpen(true)}
+  >
+    <Image
+      src={primaryImage}
+      alt={product.name}
+      fill
+      sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+      className="object-cover object-center transition-transform duration-500 group-hover:scale-110"
+      quality={85}
+    />
+
+    {/* Badges */}
+    <div className="absolute left-2.5 top-2.5 z-20 flex flex-col gap-1.5">
+      {hasDiscount ? (
+        <Badge className="border-rose-500 bg-rose-500 text-white shadow-sm font-semibold tracking-wide text-xs px-2 py-0.5">
+          Save {discountPercent}%
+        </Badge>
+      ) : null}
+      {isSoldOut ? (
+        <Badge className="border-zinc-900 bg-zinc-900 text-white shadow-sm font-semibold tracking-wide text-xs px-2 py-0.5">
+          Sold out
+        </Badge>
+      ) : isLowStock ? (
+        <Badge className="border-amber-500 bg-amber-500 text-white shadow-sm font-semibold tracking-wide text-xs px-2 py-0.5">
+          Low stock
+        </Badge>
+      ) : null}
+    </div>
+
+    {/* Overlay on hover */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+
+    {/* Quick View hint on hover */}
+    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+      <span className="bg-white/95 backdrop-blur-sm text-zinc-900 px-4 py-2 rounded-full text-xs font-semibold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+        Quick View
+      </span>
+    </div>
+
+    {/* Wishlist */}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          className="absolute top-2.5 right-2.5 z-20 rounded-full border border-zinc-200 bg-white/95 backdrop-blur-sm p-2 shadow-md transition-all hover:scale-110 hover:bg-white hover:shadow-lg"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleWishlist();
+          }}
+          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={isInWishlist}
         >
-          <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
-            {hasDiscount ? (
-              <Badge className="border-rose-500 bg-rose-500 text-white shadow-sm font-semibold tracking-wide">
-                Save {discountPercent}%
-              </Badge>
-            ) : null}
-            {isSoldOut ? (
-              <Badge className="border-zinc-900 bg-zinc-900 text-white shadow-sm font-semibold tracking-wide">
-                Sold out
-              </Badge>
-            ) : isLowStock ? (
-              <Badge className="border-amber-500 bg-amber-500 text-white shadow-sm font-semibold tracking-wide">
-                Low stock
-              </Badge>
-            ) : null}
-          </div>
-
-          <Image
-            src={primaryImage}
-            alt={product.name}
-            fill
-            sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-            className="object-contain object-center transition-transform duration-300 group-hover:scale-105"
+          <Heart
+            className={cn(
+              "h-4 w-4 transition-colors",
+              isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400 hover:text-red-500",
+            )}
           />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="left" sideOffset={8}>
+        {isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+      </TooltipContent>
+    </Tooltip>
+  </div>
 
-          {/* Overlay on hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+  {/* Content */}
+  <CardContent className="space-y-2 p-3">
+    {/* Product name */}
+    <h3
+      className="font-bold text-sm text-zinc-900 hover:text-zinc-600 line-clamp-1 cursor-pointer transition-colors leading-tight"
+      onClick={() => setQuickOpen(true)}
+    >
+      {product.name}
+    </h3>
 
-          {/* Quick View hint on hover */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <span className="bg-white/95 backdrop-blur-sm text-zinc-900 px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-              Quick View
+    {/* Brand and category - more compact */}
+    {(product.brand || product.category?.name) && (
+      <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        {product.brand ? <span className="font-medium truncate">{product.brand}</span> : null}
+        {product.brand && product.category?.name ? (
+          <span className="text-zinc-300">•</span>
+        ) : null}
+        {product.category?.name ? <span className="truncate">{product.category.name}</span> : null}
+      </div>
+    )}
+
+    {/* Price */}
+    <div className="flex items-baseline gap-1.5 flex-wrap">
+      <span className="text-lg font-extrabold text-zinc-900">
+        {showPriceRange
+          ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
+          : formatPrice(minPrice)}
+      </span>
+      {hasDiscount && !showPriceRange ? (
+        <span className="text-xs text-zinc-400 line-through">
+          {formatPrice(product.price)}
+        </span>
+      ) : null}
+      {isInStock && !isLowStock ? (
+        <span className="text-xs font-semibold text-emerald-600">
+          In stock
+        </span>
+      ) : null}
+    </div>
+
+    {/* Sizes and colors - condensed */}
+    {(sizes.length > 0 || colors.length > 0) && (
+      <div className="flex items-center gap-3 text-xs">
+        {sizes.length > 0 ? (
+          <div className="flex items-center gap-1">
+            <span className="text-zinc-500">Sizes:</span>
+            <span className="font-medium text-zinc-700">
+              {sizes.slice(0, 3).join(', ')}
+              {sizes.length > 3 ? ` +${sizes.length - 3}` : ''}
             </span>
           </div>
-
-          {/* Wishlist - Stop propagation to prevent quick view */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="absolute top-3 right-3 z-10 rounded-full border border-zinc-200 bg-white/95 p-2 shadow-sm transition hover:scale-110 hover:bg-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleWishlist();
-                }}
-                aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-                aria-pressed={isInWishlist}
-              >
-                <Heart
-                  className={cn(
-                    "h-5 w-5",
-                    isInWishlist ? "fill-red-500 text-red-500" : "text-zinc-400",
-                  )}
-                />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={8}>
-              {isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
-        {/* Content */}
-        <CardContent className="space-y-3 p-4">
-          {/* Product name - also opens quick view */}
-          <h3
-            className="font-bold text-zinc-900 hover:text-zinc-600 line-clamp-1 cursor-pointer"
-            onClick={() => setQuickOpen(true)}
-          >
-            {product.name}
-          </h3>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-            {product.brand ? <span>{product.brand}</span> : null}
-            {product.brand && product.category?.name ? (
-              <span className="text-zinc-300">•</span>
-            ) : null}
-            {product.category?.name ? <span>{product.category.name}</span> : null}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-extrabold text-zinc-900">
-              {showPriceRange
-                ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
-                : formatPrice(minPrice)}
+        ) : null}
+        {colors.length > 0 ? (
+          <div className="flex items-center gap-1">
+            <span className="text-zinc-500">Colors:</span>
+            <span className="font-medium text-zinc-700">
+              {colors.slice(0, 2).join(', ')}
+              {colors.length > 2 ? ` +${colors.length - 2}` : ''}
             </span>
-            {hasDiscount && !showPriceRange ? (
-              <span className="text-sm text-zinc-400 line-through">
-                {formatPrice(product.price)}
-              </span>
-            ) : null}
-            {isInStock && !isLowStock ? (
-              <span className="text-xs font-semibold text-emerald-700">
-                In stock
-              </span>
-            ) : null}
           </div>
+        ) : null}
+      </div>
+    )}
+  </CardContent>
 
-          {(sizes.length > 0 || colors.length > 0) && (
-            <div className="space-y-2">
-              {sizes.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-zinc-500">Sizes:</span>
-                  {sizes.slice(0, 4).map((size) => (
-                    <Badge
-                      key={size}
-                      variant="outline"
-                      className="rounded-full border-zinc-200 bg-white text-zinc-700"
-                    >
-                      {size}
-                    </Badge>
-                  ))}
-                  {sizes.length > 4 ? (
-                    <span className="text-xs text-zinc-500">
-                      +{sizes.length - 4}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-              {colors.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-zinc-500">Colors:</span>
-                  {colors.slice(0, 4).map((color) => (
-                    <Badge
-                      key={color}
-                      variant="outline"
-                      className="rounded-full border-zinc-200 bg-white text-zinc-700"
-                    >
-                      {color}
-                    </Badge>
-                  ))}
-                  {colors.length > 4 ? (
-                    <span className="text-xs text-zinc-500">
-                      +{colors.length - 4}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          )}
+  {/* Actions */}
+  <CardFooter className="flex gap-2 border-t border-zinc-100 px-3 pb-3 pt-2.5 bg-zinc-50/50">
+    <Button
+      size="default"
+      className="flex-1 rounded-full bg-zinc-900 text-white font-semibold shadow-sm hover:bg-zinc-800 transition-all hover:shadow-md disabled:opacity-50 h-9 text-sm"
+      onClick={handleAddToCart}
+      disabled={!isInStock}
+    >
+      <ShoppingCart className="h-4 w-4" />
+      {isInStock ? "Add to Cart" : "Unavailable"}
+    </Button>
 
-        </CardContent>
-
-        {/* Actions */}
-        <CardFooter className="flex gap-2 border-t border-zinc-200 px-4 pb-4 pt-3">
-          <Button
-            size="lg"
-            className="flex-1 rounded-full bg-zinc-900 text-white font-semibold shadow-sm hover:bg-zinc-800"
-            onClick={handleAddToCart}
-            disabled={!isInStock}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {isInStock ? "Add to Cart" : "Unavailable"}
-          </Button>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon-lg"
-                className="rounded-full border-2 border-zinc-300"
-                onClick={() => setQuickOpen(true)}
-                aria-label="Quick view"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={6}>
-              Quick view
-            </TooltipContent>
-          </Tooltip>
-        </CardFooter>
-      </Card>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="rounded-full border-2 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 transition-all h-9 w-9"
+          onClick={() => setQuickOpen(true)}
+          aria-label="Quick view"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6}>
+        Quick view
+      </TooltipContent>
+    </Tooltip>
+  </CardFooter>
+</Card>
 
       {/* Quick View Dialog */}
       <QuickViewDialog

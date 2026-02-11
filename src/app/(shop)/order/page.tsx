@@ -47,14 +47,21 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("khqr");
 
+  // Form fields
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
   // KHQR payment states
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
   const [khqrCode, setKhqrCode] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<"form" | "qr" | "success">(
     "form",
   );
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollAttemptsRef = useRef<number>(0);
+  const MAX_POLL_ATTEMPTS = 60; // 5 minutes at 5 second intervals
 
   // Calculations
   const shippingCost = 0; // Free shipping
@@ -72,11 +79,35 @@ export default function OrderPage() {
 
   // Poll for payment verification
   const startPolling = useCallback(
-    (orderId: string) => {
+    (orderId: string, paymentId: string) => {
+      pollAttemptsRef.current = 0;
+
       pollingRef.current = setInterval(async () => {
+        pollAttemptsRef.current++;
+        console.log(
+          `[KHQR] Poll attempt ${pollAttemptsRef.current}/${MAX_POLL_ATTEMPTS}`,
+        );
+
+        // Timeout after max attempts
+        if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+          console.log("[KHQR] Polling timeout reached");
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          setError(
+            "Payment verification timed out. Please check your order status.",
+          );
+          return;
+        }
+
         try {
-          const result = await verifyPayment(orderId, accessToken);
-          if (result.paid) {
+          const payment = await verifyPayment(orderId, paymentId, accessToken);
+          console.log("[KHQR] Verification response:", JSON.stringify(payment));
+
+          // Backend returns status === 'COMPLETED' when payment is successful
+          if (payment.status === "COMPLETED") {
+            console.log("[KHQR] Payment COMPLETED, clearing interval");
             if (pollingRef.current) {
               clearInterval(pollingRef.current);
               pollingRef.current = null;
@@ -87,7 +118,7 @@ export default function OrderPage() {
         } catch (err) {
           console.error("Verification error:", err);
         }
-      }, 3000);
+      }, 5000); // Poll every 5 seconds
     },
     [clear, accessToken],
   );
@@ -112,28 +143,37 @@ export default function OrderPage() {
       if (paymentMethod === "khqr") {
         // Step 1: Create order
         const cartPayload = {
+          shippingAddress,
+          phoneNumber,
+          paymentMethod: "KHQR" as const,
           items: items.map((item) => ({
-            productId: item.id,
-            name: item.name,
-            price: item.price,
+            productId: Number(item.id),
+            productVariantId: null,
             quantity: item.quantity,
           })),
-          totalAmount: total,
         };
 
         const checkoutResult = await createCheckout(cartPayload, accessToken);
-        setOrderId(checkoutResult.orderId);
+        const orderIdStr = String(checkoutResult.id);
+        setOrderId(orderIdStr);
+        console.log("[KHQR] Order created, orderId:", orderIdStr);
 
         // Step 2: Generate KHQR
-        const khqrResult = await generateKHQR(
-          { orderId: checkoutResult.orderId },
-          accessToken,
+        const khqrResult = await generateKHQR(orderIdStr, accessToken);
+        console.log("[KHQR] KHQR generated:", JSON.stringify(khqrResult));
+        console.log(
+          "[KHQR] paymentId:",
+          khqrResult.id,
+          "md5Hash:",
+          khqrResult.md5Hash,
         );
+
         setKhqrCode(khqrResult.khqrCode);
+        setPaymentId(String(khqrResult.id));
         setPaymentStep("qr");
 
-        // Step 3: Start polling for payment
-        startPolling(checkoutResult.orderId);
+        // Step 3: Start polling for payment verification
+        startPolling(orderIdStr, String(khqrResult.id));
       } else {
         // Handle other payment methods (COD, Card)
         await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -208,6 +248,8 @@ export default function OrderPage() {
                     id="address"
                     placeholder="123 Main St, Apt 4B"
                     required
+                    value={shippingAddress}
+                    onChange={(e) => setShippingAddress(e.target.value)}
                   />
                 </div>
 
@@ -217,6 +259,8 @@ export default function OrderPage() {
                     id="phone"
                     type="tel"
                     placeholder="+1 (555) 000-0000"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                   />
                 </div>
               </CardContent>
@@ -487,7 +531,10 @@ export default function OrderPage() {
                     <span className="text-sm">Waiting for payment...</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">Order ID: {orderId}</p>
+                <div className="text-xs text-gray-500 text-center space-y-1">
+                  <p>Order ID: {orderId}</p>
+                  <p>Payment ID: {paymentId}</p>
+                </div>
               </CardContent>
             </Card>
           </div>

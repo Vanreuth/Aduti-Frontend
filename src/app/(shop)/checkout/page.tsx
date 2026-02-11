@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const [step, setStep] = useState<CheckoutStep>("cart");
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
   const [khqrCode, setKhqrCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,12 +42,12 @@ export default function CheckoutPage() {
 
   // Poll for payment verification
   const startPolling = useCallback(
-    (orderId: string) => {
+    (orderId: string, paymentId: string) => {
       setStep("verifying");
 
       pollingRef.current = setInterval(async () => {
         try {
-          const result = await verifyPayment(orderId);
+          const result = await verifyPayment(orderId, paymentId);
           if (result.paid) {
             // Payment confirmed
             if (pollingRef.current) {
@@ -75,27 +76,28 @@ export default function CheckoutPage() {
     try {
       // Step 1: Create order
       const cartPayload = {
+        shippingAddress: "Default Address - Please update",
+        phoneNumber: "000000000",
+        paymentMethod: "KHQR" as const,
         items: items.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          price: item.price,
+          productId: Number(item.id),
+          productVariantId: null,
           quantity: item.quantity,
         })),
-        totalAmount: subtotal,
       };
 
       const checkoutResult = await createCheckout(cartPayload);
-      setOrderId(checkoutResult.orderId);
+      const orderIdStr = String(checkoutResult.id);
+      setOrderId(orderIdStr);
 
       // Step 2: Generate KHQR
-      const khqrResult = await generateKHQR({
-        orderId: checkoutResult.orderId,
-      });
+      const khqrResult = await generateKHQR(orderIdStr);
       setKhqrCode(khqrResult.khqrCode);
+      setPaymentId(String(khqrResult.id));
       setStep("payment");
 
       // Step 3: Start polling for payment verification
-      startPolling(checkoutResult.orderId);
+      startPolling(orderIdStr, String(khqrResult.id));
     } catch (err) {
       console.error("Checkout error:", err);
       setError(err instanceof Error ? err.message : "Checkout failed");
