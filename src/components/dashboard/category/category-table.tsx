@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Edit, MoreHorizontal, Plus, Tag, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ import {
   TableFilters,
   type TableFilterConfig,
 } from "@/components/dashboard/table-filters";
+import { useAuth } from "@/context/AuthContext";
 import type { Category } from "@/types/api";
 import {
   createCategory,
@@ -49,6 +50,7 @@ import {
   updateCategory,
   type CategoryRequestPayload,
 } from "@/lib/api/category";
+import { toast } from "sonner";
 
 type CategoryStatus = "Active" | "Inactive";
 
@@ -76,6 +78,7 @@ function formatDate(value?: string | null) {
 }
 
 export default function CategoryTable() {
+  const { accessToken } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +147,11 @@ export default function CategoryTable() {
     return filteredCategories.slice(start, start + pageSize);
   }, [filteredCategories, currentPage, pageSize]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -155,11 +162,11 @@ export default function CategoryTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    void loadCategories();
+  }, [loadCategories]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -212,14 +219,24 @@ export default function CategoryTable() {
     try {
       setIsSubmitting(true);
       if (modalMode === "add") {
-        await createCategory(payload);
+        await createCategory(payload, accessToken);
+        toast.success("Category created", {
+          description: `${payload.name} has been added successfully.`,
+        });
       } else if (selectedCategory) {
-        await updateCategory(selectedCategory.id, payload);
+        await updateCategory(selectedCategory.id, payload, accessToken);
+        toast.success("Category updated", {
+          description: `${payload.name} has been updated successfully.`,
+        });
       }
       setIsModalOpen(false);
       await loadCategories();
     } catch (err: any) {
-      setFormError(err?.message ?? "Failed to save category");
+      const message = err?.message ?? "Failed to save category";
+      setFormError(message);
+      toast.error("Save category failed", {
+        description: message,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -229,11 +246,18 @@ export default function CategoryTable() {
     if (!selectedCategory) return;
     try {
       setIsDeleting(true);
-      await deleteCategory(selectedCategory.id);
+      await deleteCategory(selectedCategory.id, accessToken);
       setIsDeleteModalOpen(false);
       await loadCategories();
+      toast.success("Category deleted", {
+        description: `${selectedCategory.name} has been deleted.`,
+      });
     } catch (err: any) {
-      setError(err?.message ?? "Failed to delete category");
+      const message = err?.message ?? "Failed to delete category";
+      setError(message);
+      toast.error("Delete category failed", {
+        description: message,
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -270,20 +294,21 @@ export default function CategoryTable() {
               <TableHead>Description</TableHead>
               <TableHead>Products</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>CreatedAt</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   Loading categories...
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-destructive">
+                <TableCell colSpan={7} className="h-24 text-center text-destructive">
                   {error}
                 </TableCell>
               </TableRow>
@@ -315,6 +340,22 @@ export default function CategoryTable() {
                     </Badge>
                   </TableCell>
                   <TableCell>{formatDate(category.createdAt)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      {category.createdByPhoto ? (
+                        <img
+                          src={category.createdByPhoto}
+                          alt={category.createdByUsername || "User"}
+                          className="h-7 w-7 rounded-full border object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full border bg-muted text-[10px] font-semibold uppercase text-muted-foreground">
+                          {(category.createdByUsername || "?").slice(0, 2)}
+                        </div>
+                      )}
+                      <span>{category.createdByUsername || "—"}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -341,7 +382,7 @@ export default function CategoryTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No categories found
                 </TableCell>
               </TableRow>

@@ -6,7 +6,7 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 export async function apiFetch<T>(
   url: string,
   options: RequestInit = {},
-  token?: string,
+  token?: string | null,
 ): Promise<T> {
   const headers: HeadersInit = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -43,10 +43,7 @@ export async function apiFetch<T>(
   return data as T;
 }
 
-/**
- * Public GET helper (no auth, SSR-safe)
- * 👈 THIS is what product.ts & category.ts expect
- */
+
 export async function api<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
@@ -58,3 +55,4 @@ export async function api<T>(path: string): Promise<T> {
 
   return res.json();
 }
+

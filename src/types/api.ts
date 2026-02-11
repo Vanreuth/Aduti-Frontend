@@ -13,6 +13,8 @@ export type Category = {
   isActive: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  createdByUsername?: string | null;
+  createdByPhoto: string | null;
   productCount: number | null;
 };
 
@@ -45,6 +47,8 @@ export type Product = {
   isActive: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  createdByUsername?: string | null;
+  createdByPhoto?: string | null;
   category: Category;
   variants: ProductVariant[];
 };

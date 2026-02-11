@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,9 @@ export const ShopContent = () => {
   const router = useRouter();
   const searchQuery = searchParams.get("search") || "";
   const filterParam = searchParams.get("filter") || "";
+  const urlCategoryParam = (searchParams.get("category") || "all")
+    .trim()
+    .toLowerCase();
 
   const initialSortBy = useMemo<SortBy>(() => {
     if (filterParam === "new") return "newest";
@@ -52,7 +55,7 @@ export const ShopContent = () => {
   const [localQuery, setLocalQuery] = useState(searchQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const [priceRange, setPriceRange] = useState(0);
-  const [categorySlug, setCategorySlug] = useState<string>("all");
+  const [categorySlug, setCategorySlug] = useState<string>(urlCategoryParam || "all");
   const [sizeValue, setSizeValue] = useState<string>("all");
   const [colorValue, setColorValue] = useState<string>("all");
   const [categoryOptions, setCategoryOptions] = useState<
@@ -61,6 +64,25 @@ export const ShopContent = () => {
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [page, setPage] = useState(0);
   const pageSize = 12;
+
+  const updateCategoryParam = useCallback(
+    (slug: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (!slug || slug === "all") {
+        params.delete("category");
+      } else {
+        params.set("category", slug);
+      }
+      const newUrl = params.toString() ? `/shop?${params.toString()}` : "/shop";
+      router.replace(newUrl, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  useEffect(() => {
+    setCategorySlug(urlCategoryParam || "all");
+    setPage(0);
+  }, [urlCategoryParam]);
 
   // Debounce search input
   useEffect(() => {
@@ -137,8 +159,10 @@ export const ShopContent = () => {
 
         if (!mounted) return;
         setPageData(products);
-      } catch (e: any) {
-        if (mounted) setError(e?.message ?? "Failed to load products");
+      } catch (e: unknown) {
+        if (mounted) {
+          setError(e instanceof Error ? e.message : "Failed to load products");
+        }
       } finally {
         if (mounted) {
           setFetching(false);
@@ -198,6 +222,7 @@ export const ShopContent = () => {
     setColorValue("all");
     setSortBy("featured");
     setPage(0);
+    updateCategoryParam("all");
   };
 
   const handleClearAll = () => {
@@ -209,12 +234,11 @@ export const ShopContent = () => {
     setColorValue("all");
     setSortBy("featured");
     setPage(0);
-    if (searchParams.has("search")) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("search");
-      const newUrl = params.toString() ? `/shop?${params.toString()}` : "/shop";
-      router.replace(newUrl);
-    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
+    params.delete("category");
+    const newUrl = params.toString() ? `/shop?${params.toString()}` : "/shop";
+    router.replace(newUrl, { scroll: false });
   };
 
   const clearSearch = () => {
@@ -402,6 +426,7 @@ export const ShopContent = () => {
               onCategoryChange={(slug) => {
                 setCategorySlug(slug);
                 setPage(0);
+                updateCategoryParam(slug);
               }}
               priceRange={priceRange}
               onPriceRangeChange={(idx) => {

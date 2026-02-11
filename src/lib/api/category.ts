@@ -1,13 +1,20 @@
 import type { ApiResponse, Category } from "@/types/api";
-import { api, apiFetch } from "@/lib/api/client";
+import { apiFetch,api } from "@/lib/api/client";
 
-export async function getAllCategories(): Promise<Category[]> {
-  const json = await api<ApiResponse<Category[]>>(`/api/categories`);
-  return json.data ?? [];
+export async function getAllCategories(
+): Promise<Category[]> {
+  const json = await api<ApiResponse<Category[]>>(
+    "/api/categories",
+  );
+  return json.data;
 }
 
-export async function getCategoryById(id: string | number): Promise<Category> {
-  const json = await api<ApiResponse<Category>>(`/api/categories/${id}`);
+export async function getCategoryById(
+  id: string | number,
+): Promise<Category> {
+  const json = await api<ApiResponse<Category>>(
+    `/api/categories/${id}`,
+  );
   return json.data;
 }
 
@@ -17,29 +24,48 @@ export type CategoryRequestPayload = {
   isActive?: boolean;
 };
 
-export async function createCategory(payload: CategoryRequestPayload) {
-  const json = await apiFetch<ApiResponse<Category>>("/api/categories", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export async function createCategory(
+  payload: CategoryRequestPayload,
+  accessToken?: string | null,
+) {
+  const json = await apiFetch<ApiResponse<Category>>(
+    "/api/categories",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
   return json.data;
 }
 
 export async function updateCategory(
   id: number,
   payload: CategoryRequestPayload,
+  accessToken?: string | null,
 ) {
-  const json = await apiFetch<ApiResponse<Category>>(`/api/categories/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
+  const json = await apiFetch<ApiResponse<Category>>(
+    `/api/categories/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
   return json.data;
 }
 
-export async function deleteCategory(id: number) {
-  const json = await apiFetch<ApiResponse<null>>(`/api/categories/${id}`, {
-    method: "DELETE",
-  });
+export async function deleteCategory(
+  id: number,
+  accessToken?: string | null,
+) {
+  const json = await apiFetch<ApiResponse<null>>(
+    `/api/categories/${id}`,
+    {
+      method: "DELETE",
+    },
+    accessToken,
+  );
   return json.data;
 }
 

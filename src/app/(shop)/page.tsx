@@ -10,7 +10,6 @@ export default function Home() {
       <Slider />
       <OurPolicy />
       <CategorySection />
-
       <ProductOverview />
       <NewsletterBox />
     </div>
