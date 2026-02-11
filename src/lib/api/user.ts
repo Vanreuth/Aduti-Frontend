@@ -1,10 +1,9 @@
 ﻿import { MeResponse } from "./auth";
-import { apiFetch } from "./client";
-import type { UserProfile } from "@/types/user";
+import { API_BASE, apiFetch } from "./client";
 
 // register user (with FormData, optional photo)
 export async function register(formData: FormData) {
-  const res = await fetch("http://localhost:8080/api/users/register", {
+  const res = await fetch(`${API_BASE}/api/users/register`, {
     method: "POST",
     body: formData, // ✅ FormData, browser sets Content-Type automatically
   });
@@ -26,28 +25,6 @@ export async function register(formData: FormData) {
 
   return data; // server response
 }
-
-// export function updateMe(payload: FormData, token: string) {
-//   return apiFetch(
-//     "/api/users/me",
-//     {
-//       method: "PUT",
-//       body: payload, // ✅ FormData
-//     },
-//     token,
-//   );
-// }
-
-// export function updateMe(payload: FormData, token: string) {
-//   return apiFetch<MeResponse>(
-//     "/api/users/me",
-//     {
-//       method: "PUT",
-//       body: payload, // FormData
-//     },
-//     token,
-//   );
-// }
 
 export function updateMe(payload: FormData, token: string) {
   return apiFetch<MeResponse>(

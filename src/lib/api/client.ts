@@ -4,7 +4,7 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
  * Auth-aware fetch (JSON + FormData safe)
  */
 export async function apiFetch<T>(
-  url: string,
+  path: string,
   options: RequestInit = {},
   token?: string | null,
 ): Promise<T> {
@@ -16,15 +16,13 @@ export async function apiFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(
-    url.startsWith("http")
-      ? url
-      : `${process.env.NEXT_PUBLIC_API_BASE_URL}${url}`,
-    {
-      ...options,
-      headers,
-    },
-  );
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  console.log(`[API] ${options.method || "GET"} ${url}`);
+
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  });
 
   const contentType = res.headers.get("content-type") || "";
   const data = contentType.includes("application/json")
@@ -32,6 +30,7 @@ export async function apiFetch<T>(
     : await res.text();
 
   if (!res.ok) {
+    console.error(`[API Error] ${res.status} ${url}`, data);
     throw new Error(
       data?.message ||
         data?.error ||
