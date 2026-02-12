@@ -15,10 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
-
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api/client";
-import { log } from "console";
 import { loginApi } from "@/lib/api/auth";
 
 export default function LoginPage() {
