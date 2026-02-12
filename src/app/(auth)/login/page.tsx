@@ -42,7 +42,7 @@ export default function LoginPage() {
     } else {
       router.push("/shop");
     }
-  }, [user, router, redirectTo]);
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
