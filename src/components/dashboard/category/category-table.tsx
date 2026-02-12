@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Edit, MoreHorizontal, Plus, Tag, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,8 +41,7 @@ import {
   TableFilters,
   type TableFilterConfig,
 } from "@/components/dashboard/table-filters";
-import { useAuth } from "@/context/AuthContext";
-import type { Category } from "@/types/api";
+import type { Category } from "@/types/product";
 import {
   createCategory,
   deleteCategory,
@@ -84,7 +77,6 @@ function formatDate(value?: string | null) {
 }
 
 export default function CategoryTable() {
-  const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,8 +118,7 @@ export default function CategoryTable() {
   );
 
   const activeFiltersCount = useMemo(
-    () =>
-      Object.values(filters).filter((value) => value && value !== "All").length,
+    () => Object.values(filters).filter((value) => value && value !== "All").length,
     [filters],
   );
 
@@ -148,20 +139,13 @@ export default function CategoryTable() {
     });
   }, [categories, searchTerm, statusFilter]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredCategories.length / pageSize),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
   const paginatedCategories = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredCategories.slice(start, start + pageSize);
   }, [filteredCategories, currentPage, pageSize]);
 
   const loadCategories = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -172,7 +156,7 @@ export default function CategoryTable() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     void loadCategories();
@@ -292,9 +276,7 @@ export default function CategoryTable() {
         activeFiltersCount={activeFiltersCount}
         filters={filterConfig}
         filterValues={filters}
-        onFilterChange={(key, value) =>
-          setFilters((prev) => ({ ...prev, [key]: value }))
-        }
+        onFilterChange={(key, value) => setFilters((prev) => ({ ...prev, [key]: value }))}
         onClearFilters={() => setFilters({ status: "All" })}
       />
 
@@ -320,10 +302,7 @@ export default function CategoryTable() {
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-destructive"
-                >
+                <TableCell colSpan={7} className="h-24 text-center text-destructive">
                   {error}
                 </TableCell>
               </TableRow>
@@ -347,14 +326,10 @@ export default function CategoryTable() {
                     {category.description || "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {category.productCount ?? 0}
-                    </Badge>
+                    <Badge variant="outline">{category.productCount ?? 0}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={category.isActive ? "default" : "secondary"}
-                    >
+                    <Badge variant={category.isActive ? "default" : "secondary"}>
                       {category.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
@@ -383,9 +358,7 @@ export default function CategoryTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => openEditModal(category)}
-                        >
+                        <DropdownMenuItem onClick={() => openEditModal(category)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
@@ -471,10 +444,7 @@ export default function CategoryTable() {
                 <Select
                   value={formData.status}
                   onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      status: value as CategoryStatus,
-                    })
+                    setFormData({ ...formData, status: value as CategoryStatus })
                   }
                 >
                   <SelectTrigger id="category-status">

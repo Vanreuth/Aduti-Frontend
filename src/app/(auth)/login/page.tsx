@@ -15,8 +15,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+
 import { useAuth } from "@/context/AuthContext";
-import { loginApi } from "@/lib/api/auth";
+import { apiFetch } from "@/lib/api/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function LoginPage() {
     } else {
       router.push("/shop");
     }
-  }, [user, router]);
+  }, [user, router, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +51,13 @@ export default function LoginPage() {
     try {
       setIsBusy(true);
       setError("");
-      await loginApi({ username, password });
+      await apiFetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
       await refreshUser();
     } catch (err: any) {
       setError(err.message || "Login failed");
@@ -86,7 +93,7 @@ export default function LoginPage() {
                     </p>
                     <p className="mt-0.5 text-sm text-red-700">{error}</p>
 
-                    {/* <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => setError("")}
@@ -100,7 +107,7 @@ export default function LoginPage() {
                       >
                         Reset password
                       </Link>
-                    </div> */}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -125,12 +132,12 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  {/* <Link
+                  <Link
                     href="/forgot-password"
                     className="text-sm text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
                   >
                     Forgot password?
-                  </Link> */}
+                  </Link>
                 </div>
 
                 <div className="relative">

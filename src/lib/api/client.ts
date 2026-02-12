@@ -71,18 +71,13 @@ export async function apiFetch<T>(
   return null;
 }
 
-/**
- * Public GET helper (no auth, SSR-safe)
- * 👈 THIS is what product.ts & category.ts expect
- */
+
 export async function api<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
+    credentials: "include",
   });
 
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - ${path}`);
-  }
-
+  if (!res.ok) throw new Error(`HTTP ${res.status} - ${path}`);
   return res.json();
 }

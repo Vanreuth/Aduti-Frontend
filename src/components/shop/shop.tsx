@@ -11,15 +11,14 @@ import {
   ShopLoading,
   priceRanges,
 } from "@/components/shop";
-import type { ProductListData } from "@/types/api";
+import type { ProductListData } from "@/types/product";
 import { getAllProducts } from "@/lib/api/product";
 import { getAllCategories } from "@/lib/api/category";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { fadeUpItem } from "@/lib/utils";
 
 
-type SortBy = "featured" | "price-low" | "price-high" | "newest";
+type SortBy = "featured" | "price-low" | "price-high";
 
 export const ShopContent = () => {
   const searchParams = useSearchParams();
@@ -31,7 +30,6 @@ export const ShopContent = () => {
     .toLowerCase();
 
   const initialSortBy = useMemo<SortBy>(() => {
-    if (filterParam === "new") return "newest";
     if (filterParam === "price-low") return "price-low";
     if (filterParam === "price-high") return "price-high";
     return "featured";
@@ -41,7 +39,7 @@ export const ShopContent = () => {
   const [pageData, setPageData] = useState<ProductListData>({
     products: [],
     pageNumber: 0,
-    pageSize: 12,
+    pageSize: 15,
     totalElements: 0,
     totalPages: 1,
     last: true,
@@ -63,7 +61,7 @@ export const ShopContent = () => {
   >([{ label: "All", value: "all" }]);
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [page, setPage] = useState(0);
-  const pageSize = 12;
+  const pageSize = 15;
 
   const updateCategoryParam = useCallback(
     (slug: string) => {
@@ -135,7 +133,6 @@ export const ShopContent = () => {
     const sortConfig = (() => {
       if (sortBy === "price-low") return { sortBy: "price", direction: "ASC" as const };
       if (sortBy === "price-high") return { sortBy: "price", direction: "DESC" as const };
-      if (sortBy === "newest") return { sortBy: "createdAt", direction: "DESC" as const };
       return { sortBy: "id", direction: "DESC" as const };
     })();
 
@@ -215,6 +212,24 @@ export const ShopContent = () => {
     );
   }, [pageData.products, colorValue]);
 
+  const brandOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const values: string[] = [];
+
+    for (const product of pageData.products) {
+      if (typeof product.brand !== "string") continue;
+      const trimmed = product.brand.trim();
+      if (!trimmed || trimmed.toLowerCase() === "null") continue;
+
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      values.push(trimmed);
+    }
+
+    return values.slice(0, 5);
+  }, [pageData.products]);
+
   const handleReset = () => {
     setPriceRange(0);
     setCategorySlug("all");
@@ -272,14 +287,32 @@ export const ShopContent = () => {
   const resultsLabel =
     totalResults === 0
       ? "No results"
-      : `Showing ${pageStart}-${pageEnd} of ${totalResults}`;
+      : `Showing ${pageStart}-${pageEnd} of ${totalResults} results`;
 
   const sortLabels: Record<SortBy, string> = {
     featured: "Featured",
-    newest: "Newest",
     "price-low": "Price: Low to High",
     "price-high": "Price: High to Low",
   };
+
+  const visiblePageNumbers = useMemo(() => {
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      return Array.from({ length: totalPages }, (_, index) => index);
+    }
+
+    const halfWindow = Math.floor(maxVisible / 2);
+    let start = Math.max(0, currentPage - halfWindow);
+    let end = start + maxVisible - 1;
+
+    if (end >= totalPages) {
+      end = totalPages - 1;
+      start = Math.max(0, end - maxVisible + 1);
+    }
+
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }, [currentPage, totalPages]);
 
   const activeFilters = [
     debouncedQuery
@@ -376,41 +409,35 @@ export const ShopContent = () => {
   }
 
   return (
-    <motion.div
-      className="min-h-screen bg-zinc-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <motion.div variants={fadeUpItem} initial="hidden" animate="show">
-        <SearchHeader
-          title="Shop"
-          subtitle="Discover new arrivals, timeless basics, and statement pieces."
-          query={localQuery}
-          sortBy={sortBy}
-          resultsCount={totalResults}
-          resultsLabel={resultsLabel}
-          filters={activeFilters}
-          onClearAll={activeFilters.length > 0 ? handleClearAll : undefined}
-          isUpdating={fetching}
-          onQueryChange={(value) => {
-            setLocalQuery(value);
-            setPage(0);
-          }}
-          onSortChange={(value) => {
-            setSortBy(value);
-            setPage(0);
-          }}
-          onClear={clearSearch}
-        />
-      </motion.div>
+    <div className="min-h-screen bg-[#f7f7f7]">
+      <SearchHeader
+        title="Shop"
+        subtitle="Explore premium pieces curated for your style."
+        query={localQuery}
+        sortBy={sortBy}
+        resultsCount={totalResults}
+        resultsLabel={resultsLabel}
+        filters={activeFilters}
+        onClearAll={activeFilters.length > 0 ? handleClearAll : undefined}
+        isUpdating={fetching}
+        onQueryChange={(value) => {
+          setLocalQuery(value);
+          setPage(0);
+        }}
+        onSortChange={(value) => {
+          setSortBy(value);
+          setPage(0);
+        }}
+        onClear={clearSearch}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex gap-8">
+      <div className="mx-auto max-w-7xl px-4 py-9">
+        <div className="flex gap-8 lg:gap-10">
           <FiltersPanel activeCount={activeFilterCount}>
             <FilterSidebar
               categories={categoryOptions}
               categorySlug={categorySlug}
+              brandOptions={brandOptions}
               sizeOptions={sizeOptions}
               sizeValue={sizeValue}
               onSizeChange={(value) => {
@@ -437,8 +464,7 @@ export const ShopContent = () => {
             />
           </FiltersPanel>
 
-          {/* Products Grid */}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <AnimatePresence mode="wait">
               {pageData.products.length === 0 && !fetching ? (
                 <motion.div
@@ -461,6 +487,7 @@ export const ShopContent = () => {
                   <ProductGrid
                     products={pageData.products}
                     isUpdating={fetching}
+                    gridClassName="grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 lg:gap-6"
                     animated
                     animationKey={gridKey}
                   />
@@ -468,32 +495,49 @@ export const ShopContent = () => {
               )}
             </AnimatePresence>
 
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="mt-10 flex items-center justify-center gap-1.5">
               <Button
                 variant="outline"
-                className="rounded-xl"
+                size="icon"
+                className="h-8 w-8 rounded-full border-zinc-300 bg-white text-xs"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={isFirstPage || fetching}
               >
-                Previous
+                ‹
               </Button>
 
-              <div className="text-sm text-zinc-600">
-                Page {Math.min(currentPage + 1, totalPages)} of {totalPages}
-              </div>
+              {visiblePageNumbers.map((pageIndex) => {
+                const isActive = pageIndex === currentPage;
+                return (
+                  <Button
+                    key={`page-${pageIndex}`}
+                    variant="ghost"
+                    className={
+                      isActive
+                        ? "h-8 min-w-8 rounded-full bg-zinc-900 px-2 text-xs font-semibold text-white hover:bg-zinc-900"
+                        : "h-8 min-w-8 rounded-full px-2 text-xs text-zinc-600 hover:bg-zinc-200"
+                    }
+                    onClick={() => setPage(pageIndex)}
+                    disabled={fetching}
+                  >
+                    {pageIndex + 1}
+                  </Button>
+                );
+              })}
 
               <Button
                 variant="outline"
-                className="rounded-xl"
+                size="icon"
+                className="h-8 w-8 rounded-full border-zinc-300 bg-white text-xs"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={isLastPage || fetching}
               >
-                Next
+                ›
               </Button>
             </div>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
