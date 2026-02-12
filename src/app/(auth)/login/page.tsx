@@ -21,7 +21,6 @@ import { loginApi } from "@/lib/api/auth";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const { user, refreshUser } = useAuth();
 
   const [username, setUsername] = useState("");
@@ -37,7 +36,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!user) return;
 
-    if (user.role === "ADMIN") {
+    if (user.roles?.includes("ADMIN")) {
       router.push("/dashboard");
     } else {
       router.push("/shop");
@@ -51,14 +50,13 @@ export default function LoginPage() {
     try {
       setIsBusy(true);
       setError("");
-
       await loginApi({ username, password });
       await refreshUser();
-      router.push(redirectTo);
     } catch (err: any) {
       setError(err.message || "Login failed");
+    } finally {
+      setIsBusy(false);
     }
-    setIsBusy(false);
   };
 
   return (

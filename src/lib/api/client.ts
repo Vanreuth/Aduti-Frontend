@@ -12,8 +12,8 @@ export async function apiFetch<T>(
     credentials: "include",
   });
 
+  // 🔁 Auto refresh if expired
   if (res.status === 401 && !isAuthRoute) {
-    // 🔁 Try refresh
     const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
@@ -25,16 +25,22 @@ export async function apiFetch<T>(
         credentials: "include",
       });
     } else {
-      if (!window.location.pathname.includes("/login")) {
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("/login")
+      ) {
         window.location.href = "/login?expired=true";
       }
-
       throw new Error("Session expired");
     }
   }
 
   if (!res.ok) {
-    const errorBody = await res.json().catch(() => null);
+    let errorBody: any = null;
+    try {
+      errorBody = await res.json();
+    } catch {}
+
     throw new Error(errorBody?.message || `Request failed (${res.status})`);
   }
 
@@ -44,7 +50,7 @@ export async function apiFetch<T>(
 
   const contentType = res.headers.get("content-type");
 
-  if (contentType && contentType.includes("application/json")) {
+  if (contentType?.includes("application/json")) {
     return res.json();
   }
 

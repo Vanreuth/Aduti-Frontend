@@ -20,7 +20,7 @@ export type LoginData = {
   password: string;
 };
 
-export async function loginApi(data: LoginData): Promise<LoginResponse> {
+export async function loginApi(data: LoginData): Promise<LoginResponse | null> {
   return apiFetch<LoginResponse>("/api/auth/login", {
     method: "POST",
     headers: {

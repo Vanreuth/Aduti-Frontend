@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    refreshUser(); // check auth on mount
+    refreshUser();
   }, []);
 
   const logout = async () => {
