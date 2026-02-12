@@ -3,7 +3,7 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 export async function apiFetch<T>(
   url: string,
   options: RequestInit = {},
-): Promise<T> {
+): Promise<T | null> {
   const isAuthRoute =
     url.includes("/api/auth/login") || url.includes("/api/auth/refresh");
 
@@ -33,7 +33,6 @@ export async function apiFetch<T>(
     });
 
     if (refreshRes.ok) {
-      // Retry original request
       res = await fetch(`${API_BASE}${url}`, {
         ...options,
         headers,
@@ -49,10 +48,21 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    throw new Error(`Request failed (${res.status})`);
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.message || `Request failed (${res.status})`);
   }
 
-  return res.json();
+  if (res.status === 204) {
+    return null;
+  }
+
+  const contentType = res.headers.get("content-type");
+
+  if (contentType && contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  return null;
 }
 
 /**
