@@ -48,7 +48,7 @@ export default function CheckoutPage() {
       pollingRef.current = setInterval(async () => {
         try {
           const result = await verifyPayment(orderId, paymentId);
-          if (result.paid) {
+          if (result.status === "COMPLETED") {
             // Payment confirmed
             if (pollingRef.current) {
               clearInterval(pollingRef.current);

@@ -39,8 +39,10 @@ export async function getAllProducts(params?: GetAllProductsParams) {
   if (params?.category?.trim()) sp.set("categorySlug", params.category.trim());
   if (params?.sizeValue?.trim()) sp.set("sizeValue", params.sizeValue.trim());
   if (params?.color?.trim()) sp.set("color", params.color.trim());
-  if (params?.minPrice !== undefined) sp.set("minPrice", String(params.minPrice));
-  if (params?.maxPrice !== undefined) sp.set("maxPrice", String(params.maxPrice));
+  if (params?.minPrice !== undefined)
+    sp.set("minPrice", String(params.minPrice));
+  if (params?.maxPrice !== undefined)
+    sp.set("maxPrice", String(params.maxPrice));
 
   const startDate = toDateParam(params?.startDate);
   const endDate = toDateParam(params?.endDate);
@@ -105,7 +107,6 @@ export type ProductUpdatePayload = Omit<ProductCreatePayload, "variants"> & {
 export async function createProduct(
   payload: ProductCreatePayload,
   variantImages: File[][],
-  accessToken?: string | null,
 ) {
   if (!API_BASE) {
     throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
@@ -120,13 +121,9 @@ export async function createProduct(
     });
   });
 
-  const headers: HeadersInit = accessToken
-    ? { Authorization: `Bearer ${accessToken}` }
-    : {};
-
   const res = await fetch(`${API_BASE}/api/products`, {
     method: "POST",
-    headers,
+    credentials: "include",
     body: formData,
   });
 
@@ -145,7 +142,6 @@ export async function updateProduct(
   id: number,
   payload: ProductUpdatePayload,
   variantImages: File[][],
-  accessToken?: string | null,
 ) {
   if (!API_BASE) {
     throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
@@ -160,13 +156,9 @@ export async function updateProduct(
     });
   });
 
-  const headers: HeadersInit = accessToken
-    ? { Authorization: `Bearer ${accessToken}` }
-    : {};
-
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: "PUT",
-    headers,
+    credentials: "include",
     body: formData,
   });
 
@@ -181,18 +173,14 @@ export async function updateProduct(
   return data as ApiResponse<Product>;
 }
 
-export async function deleteProduct(id: number, accessToken?: string | null) {
+export async function deleteProduct(id: number) {
   if (!API_BASE) {
     throw new Error("Missing NEXT_PUBLIC_API_BASE_URL");
   }
 
-  const headers: HeadersInit = accessToken
-    ? { Authorization: `Bearer ${accessToken}` }
-    : {};
-
   const res = await fetch(`${API_BASE}/api/products/${id}`, {
     method: "DELETE",
-    headers,
+    credentials: "include",
   });
 
   const data = await res.json().catch(() => null);
@@ -205,5 +193,3 @@ export async function deleteProduct(id: number, accessToken?: string | null) {
 
   return data as ApiResponse<null>;
 }
-
-
