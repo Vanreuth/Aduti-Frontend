@@ -51,21 +51,22 @@ import {
   TableFilters,
   type TableFilterConfig,
 } from "@/components/dashboard/table-filters";
-import { useAuth } from "@/context/AuthContext";
-import type { Category, Product } from "@/types/api";
+import type {
+  Category,
+  Product,
+  ProductCreatePayload,
+  ProductLifecycleStatus,
+  ProductUpdatePayload,
+} from "@/types/product";
 import {
   createProduct,
   deleteProduct,
   getAllProducts,
   getProductById,
   updateProduct,
-  type ProductCreatePayload,
-  type ProductUpdatePayload,
 } from "@/lib/api/product";
 import { getAllCategories } from "@/lib/api/category";
 import { toast } from "sonner";
-
-type ProductStatus = "Active" | "Inactive";
 
 interface ProductRow {
   id: number;
@@ -74,7 +75,7 @@ interface ProductRow {
   category: string;
   price: number;
   stock: number;
-  status: ProductStatus;
+  status: ProductLifecycleStatus;
   createdAt: string;
   createdByUsername?: string | null;
   createdByPhoto?: string | null;
@@ -92,22 +93,35 @@ type VariantForm = {
   stockQuantity: string;
   priceAdjustment: string;
   images: File[];
+  existingImageUrls: string[];
 };
 
 interface ProductFormData {
   name: string;
-  sku: string;
   categoryId: string;
   description: string;
   price: string;
   brand: string;
-  stock: string;
-  status: ProductStatus;
+  status: ProductLifecycleStatus;
+  isActive: boolean;
+  isFeatured: boolean;
+  featuredOrder: string;
+  availableDate: string;
   createdAt: string;
   variants: VariantForm[];
 }
 
 type CategoryOption = { label: string; value: string };
+const productStatuses: ProductLifecycleStatus[] = [
+  "ACTIVE",
+  "COMING_SOON",
+  "OUT_OF_STOCK",
+  "DISCONTINUED",
+];
+const variantSizePattern = /^[a-zA-Z0-9\s./-]+$/;
+const variantColorPattern = /^[a-zA-Z0-9\s#()-]+$/;
+const variantSkuPattern = /^[A-Z0-9-_]+$/;
+const variantPriceAdjustmentPattern = /^-?\d{1,5}(?:\.\d{1,2})?$/;
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -127,9 +141,66 @@ function toOptionalNumber(value?: string) {
   return Number.isFinite(num) ? num : undefined;
 }
 
+function toOptionalInt(value?: string) {
+  const num = toOptionalNumber(value);
+  if (num === undefined) return undefined;
+  return Math.trunc(num);
+}
+
 function toDateInputValue(value?: string | null) {
   if (!value) return "";
   return value.slice(0, 10);
+}
+
+function toDateTimeLocalInputValue(value?: string | null) {
+  if (!value) return "";
+
+  const normalized = value.trim().replace(" ", "T");
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
+    return normalized.slice(0, 16);
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60_000);
+  return localDate.toISOString().slice(0, 16);
+}
+
+function toStatusLabel(status: ProductLifecycleStatus) {
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+}
+
+function splitVariantLabel(label?: string) {
+  const normalized = (label ?? "").trim();
+  if (!normalized) return { size: "", color: "" };
+
+  const slashParts = normalized
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (slashParts.length >= 2) {
+    return { size: slashParts[0], color: slashParts.slice(1).join(" / ") };
+  }
+
+  const dashParts = normalized
+    .split("-")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (dashParts.length >= 2) {
+    return { size: dashParts[0], color: dashParts.slice(1).join(" - ") };
+  }
+
+  return { size: normalized, color: "" };
 }
 
 function formatDate(value?: string | null) {
@@ -168,7 +239,7 @@ function toProductRow(product: Product): ProductRow {
     category: product.category?.name ?? "Uncategorized",
     price: product.price,
     stock,
-    status: product.isActive ? "Active" : "Inactive",
+    status: product.status ?? (product.isActive ? "ACTIVE" : "DISCONTINUED"),
     createdAt: toDateInputValue(product.createdAt),
     createdByUsername: product.createdByUsername ?? null,
     createdByPhoto: product.createdByPhoto ?? null,
@@ -184,7 +255,6 @@ function getVariantTabValue(index: number) {
 }
 
 export default function ProductDataTable() {
-  const { accessToken } = useAuth();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -227,13 +297,15 @@ export default function ProductDataTable() {
   const [variantTab, setVariantTab] = useState("variant-0");
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
-    sku: "",
     categoryId: "",
     description: "",
     price: "",
     brand: "",
-    stock: "",
-    status: "Active",
+    status: "ACTIVE",
+    isActive: true,
+    isFeatured: false,
+    featuredOrder: "",
+    availableDate: "",
     createdAt: new Date().toISOString().split("T")[0],
     variants: [
       {
@@ -244,12 +316,13 @@ export default function ProductDataTable() {
         stockQuantity: "",
         priceAdjustment: "0",
         images: [],
+        existingImageUrls: [],
       },
     ],
   });
 
   const categoryFilter = filters.category ?? "All";
-  const statusFilter = (filters.status ?? "All") as ProductStatus | "All";
+  const statusFilter = (filters.status ?? "All") as ProductLifecycleStatus | "All";
   const sizeValueFilter = filters.sizeValue ?? "";
   const colorFilter = filters.color ?? "";
   const minPriceFilter = filters.minPrice ?? "";
@@ -275,10 +348,10 @@ export default function ProductDataTable() {
         key: "status",
         label: "Status",
         type: "select",
-        options: [
-          { label: "Active", value: "Active" },
-          { label: "Inactive", value: "Inactive" },
-        ],
+        options: productStatuses.map((status) => ({
+          label: toStatusLabel(status),
+          value: status,
+        })),
       },
       {
         key: "sizeValue",
@@ -337,6 +410,7 @@ export default function ProductDataTable() {
     stockQuantity: "",
     priceAdjustment: "0",
     images: [],
+    existingImageUrls: [],
   });
 
   const detailImages = useMemo(() => {
@@ -426,7 +500,7 @@ export default function ProductDataTable() {
     return () => {
       active = false;
     };
-  }, [accessToken]);
+  }, []);
 
   useEffect(() => {
     if (
@@ -463,9 +537,9 @@ export default function ProductDataTable() {
         if (!active) return;
         setProducts((data.products ?? []).map(toProductRow));
         setTotalPages(Math.max(1, data.totalPages ?? 1));
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) return;
-        setError(err?.message ?? "Failed to load products");
+        setError(getErrorMessage(err, "Failed to load products"));
         setProducts([]);
         setTotalPages(1);
       } finally {
@@ -508,13 +582,15 @@ export default function ProductDataTable() {
     setVariantTab(getVariantTabValue(0));
     setFormData({
       name: "",
-      sku: "",
       categoryId: "",
       description: "",
       price: "",
       brand: "",
-      stock: "",
-      status: "Active",
+      status: "ACTIVE",
+      isActive: true,
+      isFeatured: false,
+      featuredOrder: "",
+      availableDate: "",
       createdAt: new Date().toISOString().split("T")[0],
       variants: [createEmptyVariant()],
     });
@@ -530,24 +606,38 @@ export default function ProductDataTable() {
     const productCategoryId = product.product.category?.id
       ? String(product.product.category.id)
       : "";
-    const variants = (product.product.variants ?? []).map((variant) => ({
-      id: variant.id,
-      size: variant.size ?? "",
-      color: variant.color ?? "",
-      sku: variant.sku ?? "",
-      stockQuantity: String(variant.stockQuantity ?? ""),
-      priceAdjustment: String(variant.priceAdjustment ?? 0),
-      images: [],
-    }));
+    const variants = (product.product.variants ?? []).map((variant) => {
+      const fallback = splitVariantLabel(variant.name);
+      return {
+        id: variant.id,
+        size: variant.size?.trim() || fallback.size,
+        color: variant.color?.trim() || fallback.color,
+        sku: variant.sku ?? "",
+        stockQuantity: String(variant.stockQuantity ?? ""),
+        priceAdjustment: String(
+          variant.priceAdjustment ?? variant.additionalPrice ?? 0,
+        ),
+        images: [],
+        existingImageUrls: (variant.images ?? [])
+          .map((image) => image.imageUrl)
+          .filter(Boolean),
+      };
+    });
     setFormData({
       name: product.name,
-      sku: product.sku,
       categoryId: productCategoryId,
       description: product.description ?? "",
       price: String(product.price),
       brand: product.brand ?? "",
-      stock: String(product.stock),
       status: product.status,
+      isActive: product.product.isActive ?? true,
+      isFeatured: Boolean(product.product.isFeatured),
+      featuredOrder:
+        product.product.featuredOrder !== null &&
+        product.product.featuredOrder !== undefined
+          ? String(product.product.featuredOrder)
+          : "",
+      availableDate: toDateTimeLocalInputValue(product.product.availableDate),
       createdAt: product.createdAt,
       variants: variants.length > 0 ? variants : [createEmptyVariant()],
     });
@@ -573,8 +663,8 @@ export default function ProductDataTable() {
       }
       setDetailProduct(data);
       setDetailActiveImageIndex(0);
-    } catch (err: any) {
-      const message = err?.message ?? "Failed to load product details";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Failed to load product details");
       setDetailError(message);
       toast.error("Failed to load product details", {
         description: message,
@@ -614,12 +704,23 @@ export default function ProductDataTable() {
 
   const updateVariant = (
     index: number,
-    field: Exclude<keyof VariantForm, "id">,
-    value: string | File[],
+    field: "size" | "color" | "sku" | "stockQuantity" | "priceAdjustment",
+    value: string,
   ) => {
     setFormData((prev) => {
       const next = [...prev.variants];
       next[index] = { ...next[index], [field]: value } as VariantForm;
+      return { ...prev, variants: next };
+    });
+  };
+
+  const updateVariantImages = (index: number, files: FileList | null) => {
+    setFormData((prev) => {
+      const next = [...prev.variants];
+      next[index] = {
+        ...next[index],
+        images: files ? Array.from(files) : [],
+      };
       return { ...prev, variants: next };
     });
   };
@@ -638,34 +739,87 @@ export default function ProductDataTable() {
   }, [formData.variants.length, variantTab]);
 
   const validateVariants = () => {
-    const fallbackSku = formData.sku.trim().toUpperCase();
-    const fallbackStock = formData.stock.trim();
+    const seenSkus = new Set<string>();
 
     for (let index = 0; index < formData.variants.length; index += 1) {
       const variant = formData.variants[index];
-      if (!variant.size.trim()) {
-        return { index, message: `Variant ${index + 1}: size is required.` };
-      }
-      if (!variant.color.trim()) {
-        return { index, message: `Variant ${index + 1}: color is required.` };
-      }
-
-      const skuValue =
-        variant.sku.trim().toUpperCase() || (index === 0 ? fallbackSku : "");
-      if (!skuValue) {
+      const sizeValue = variant.size.trim();
+      if (!sizeValue) {
         return {
           index,
-          message: `Variant ${index + 1}: SKU is required (or set default SKU).`,
+          message: `Variant ${index + 1}: size is required.`,
+        };
+      }
+      if (sizeValue.length > 50 || !variantSizePattern.test(sizeValue)) {
+        return {
+          index,
+          message: `Variant ${index + 1}: invalid size format.`,
         };
       }
 
-      const stockInput =
-        variant.stockQuantity.trim() || (index === 0 ? fallbackStock : "0");
-      const stockValue = toNumber(stockInput, -1);
-      if (stockValue < 0) {
+      const colorValue = variant.color.trim();
+      if (!colorValue) {
         return {
           index,
-          message: `Variant ${index + 1}: stock must be 0 or greater.`,
+          message: `Variant ${index + 1}: color is required.`,
+        };
+      }
+      if (
+        colorValue.length < 2 ||
+        colorValue.length > 50 ||
+        !variantColorPattern.test(colorValue)
+      ) {
+        return {
+          index,
+          message: `Variant ${index + 1}: invalid color format.`,
+        };
+      }
+
+      const skuValue = variant.sku.trim().toUpperCase();
+      if (!skuValue) {
+        return {
+          index,
+          message: `Variant ${index + 1}: SKU is required.`,
+        };
+      }
+      if (seenSkus.has(skuValue)) {
+        return {
+          index,
+          message: `Variant ${index + 1}: duplicate SKU (${skuValue}) in form.`,
+        };
+      }
+      if (
+        skuValue.length < 3 ||
+        skuValue.length > 100 ||
+        !variantSkuPattern.test(skuValue)
+      ) {
+        return {
+          index,
+          message: `Variant ${index + 1}: SKU format is invalid.`,
+        };
+      }
+      seenSkus.add(skuValue);
+
+      const stockInput = variant.stockQuantity.trim();
+      const stockValue = toNumber(stockInput, -1);
+      if (!Number.isInteger(stockValue) || stockValue < 0 || stockValue > 999999) {
+        return {
+          index,
+          message: `Variant ${index + 1}: stock is required and must be 0 to 999,999.`,
+        };
+      }
+
+      const priceAdjustmentValue = variant.priceAdjustment.trim() || "0";
+      const parsedPriceAdjustment = Number(priceAdjustmentValue);
+      if (
+        !Number.isFinite(parsedPriceAdjustment) ||
+        parsedPriceAdjustment < -99999.99 ||
+        parsedPriceAdjustment > 99999.99 ||
+        !variantPriceAdjustmentPattern.test(priceAdjustmentValue)
+      ) {
+        return {
+          index,
+          message: `Variant ${index + 1}: price adjustment must be between -99,999.99 and 99,999.99 with max 2 decimals.`,
         };
       }
     }
@@ -687,9 +841,8 @@ export default function ProductDataTable() {
     let minPrice = Number.POSITIVE_INFINITY;
     let maxPrice = Number.NEGATIVE_INFINITY;
 
-    formData.variants.forEach((variant, index) => {
-      const stockInput =
-        variant.stockQuantity.trim() || (index === 0 ? formData.stock : "0");
+    formData.variants.forEach((variant) => {
+      const stockInput = variant.stockQuantity.trim();
       totalStock += Math.max(0, toNumber(stockInput, 0));
 
       const candidatePrice = basePrice + toNumber(variant.priceAdjustment, 0);
@@ -702,7 +855,31 @@ export default function ProductDataTable() {
       minPrice: Number.isFinite(minPrice) ? minPrice : basePrice,
       maxPrice: Number.isFinite(maxPrice) ? maxPrice : basePrice,
     };
-  }, [formData.price, formData.stock, formData.variants]);
+  }, [formData.price, formData.variants]);
+
+  const variantImagePreviews = useMemo(() => {
+    if (typeof window === "undefined") {
+      return formData.variants.map(() => []);
+    }
+
+    return formData.variants.map((variant) =>
+      variant.images.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+      })),
+    );
+  }, [formData.variants]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window === "undefined") return;
+      for (const previews of variantImagePreviews) {
+        for (const preview of previews) {
+          URL.revokeObjectURL(preview.url);
+        }
+      }
+    };
+  }, [variantImagePreviews]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -724,14 +901,9 @@ export default function ProductDataTable() {
         return;
       }
 
-      const variantsPayload = formData.variants.map((variant, index) => {
-        const fallbackSku =
-          index === 0 ? formData.sku.trim().toUpperCase() : "";
-        const fallbackStock = index === 0 ? toNumber(formData.stock, 0) : 0;
-        const stockQuantityValue = variant.stockQuantity.trim()
-          ? toNumber(variant.stockQuantity, 0)
-          : fallbackStock;
-        const skuValue = variant.sku.trim().toUpperCase() || fallbackSku;
+      const variantsPayload = formData.variants.map((variant) => {
+        const stockQuantityValue = toNumber(variant.stockQuantity, 0);
+        const skuValue = variant.sku.trim().toUpperCase();
         return {
           size: variant.size.trim(),
           color: variant.color.trim(),
@@ -754,24 +926,26 @@ export default function ProductDataTable() {
         price: priceValue,
         brand: formData.brand.trim() || undefined,
         categoryId,
+        isActive: true,
+        isFeatured: false,
+        featuredOrder: undefined,
+        status: "ACTIVE",
+        availableDate: undefined,
         variants: variantsPayload,
       };
+      const variantImages = formData.variants.map((variant) => variant.images);
 
       try {
         setIsSubmitting(true);
-        await createProduct(
-          payload,
-          formData.variants.map((variant) => variant.images),
-          accessToken,
-        );
+        await createProduct(payload, variantImages);
         setIsModalOpen(false);
         setCurrentPage(1);
         setRefreshKey((prev) => prev + 1);
         toast.success("Product created", {
           description: `${payload.name} has been added successfully.`,
         });
-      } catch (err: any) {
-        const message = err?.message ?? "Failed to create product";
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, "Failed to create product");
         setFormError(message);
         toast.error("Create product failed", {
           description: message,
@@ -798,14 +972,9 @@ export default function ProductDataTable() {
         return;
       }
 
-      const variantsPayload = formData.variants.map((variant, index) => {
-        const fallbackSku =
-          index === 0 ? formData.sku.trim().toUpperCase() : "";
-        const fallbackStock = index === 0 ? toNumber(formData.stock, 0) : 0;
-        const stockQuantityValue = variant.stockQuantity.trim()
-          ? toNumber(variant.stockQuantity, 0)
-          : fallbackStock;
-        const skuValue = variant.sku.trim().toUpperCase() || fallbackSku;
+      const variantsPayload = formData.variants.map((variant) => {
+        const stockQuantityValue = toNumber(variant.stockQuantity, 0);
+        const skuValue = variant.sku.trim().toUpperCase();
         return {
           size: variant.size.trim(),
           color: variant.color.trim(),
@@ -822,12 +991,33 @@ export default function ProductDataTable() {
         return;
       }
 
+      if (formData.status === "COMING_SOON" && !formData.availableDate.trim()) {
+        setFormError("Available date is required for coming soon products.");
+        setFormTab("pricing");
+        return;
+      }
+
+      const featuredOrder = toOptionalInt(formData.featuredOrder);
+      if (formData.isFeatured && featuredOrder !== undefined && featuredOrder <= 0) {
+        setFormError("Featured order must be greater than 0.");
+        setFormTab("pricing");
+        return;
+      }
+
       const payload: ProductUpdatePayload = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         price: priceValue,
         brand: formData.brand.trim() || undefined,
         categoryId,
+        isActive: formData.isActive,
+        isFeatured: formData.isFeatured,
+        featuredOrder: formData.isFeatured ? featuredOrder : undefined,
+        status: formData.status,
+        availableDate:
+          formData.status === "COMING_SOON"
+            ? formData.availableDate
+            : undefined,
         variants: variantsPayload.map((variant, index) => {
           const variantId = formData.variants[index]?.id;
           return typeof variantId === "number"
@@ -835,22 +1025,18 @@ export default function ProductDataTable() {
             : variant;
         }),
       };
+      const variantImages = formData.variants.map((variant) => variant.images);
 
       try {
         setIsSubmitting(true);
-        await updateProduct(
-          selectedProduct.id,
-          payload,
-          formData.variants.map((variant) => variant.images),
-          accessToken,
-        );
+        await updateProduct(selectedProduct.id, payload, variantImages);
         setIsModalOpen(false);
         setRefreshKey((prev) => prev + 1);
         toast.success("Product updated", {
           description: `${payload.name} has been updated successfully.`,
         });
-      } catch (err: any) {
-        const message = err?.message ?? "Failed to update product";
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, "Failed to update product");
         setFormError(message);
         toast.error("Update product failed", {
           description: message,
@@ -872,14 +1058,14 @@ export default function ProductDataTable() {
 
     try {
       setIsDeleting(true);
-      await deleteProduct(selectedProduct.id, accessToken);
+      await deleteProduct(selectedProduct.id);
       setIsDeleteModalOpen(false);
       setRefreshKey((prev) => prev + 1);
       toast.success("Product deleted", {
         description: `${selectedProduct.name} has been deleted.`,
       });
-    } catch (err: any) {
-      const message = err?.message ?? "Failed to delete product";
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, "Failed to delete product");
       setError(message);
       toast.error("Delete product failed", {
         description: message,
@@ -889,8 +1075,10 @@ export default function ProductDataTable() {
     }
   };
 
-  const getStatusBadgeVariant = (status: ProductStatus) => {
-    return status === "Active" ? "default" : "secondary";
+  const getStatusBadgeVariant = (status: ProductLifecycleStatus) => {
+    if (status === "ACTIVE") return "default";
+    if (status === "OUT_OF_STOCK") return "destructive";
+    return "secondary";
   };
 
   const getStockBadgeVariant = (stock: number) => {
@@ -1005,7 +1193,7 @@ export default function ProductDataTable() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusBadgeVariant(product.status)}>
-                      {product.status}
+                      {toStatusLabel(product.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>{formatDate(product.createdAt)}</TableCell>
@@ -1208,12 +1396,23 @@ export default function ProductDataTable() {
                       </h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge
-                          variant={
-                            detailProduct.isActive ? "default" : "secondary"
-                          }
+                          variant={getStatusBadgeVariant(
+                            detailProduct.status ??
+                              (detailProduct.isActive
+                                ? "ACTIVE"
+                                : "DISCONTINUED"),
+                          )}
                         >
-                          {detailProduct.isActive ? "Active" : "Inactive"}
+                          {toStatusLabel(
+                            detailProduct.status ??
+                              (detailProduct.isActive
+                                ? "ACTIVE"
+                                : "DISCONTINUED"),
+                          )}
                         </Badge>
+                        {detailProduct.isFeatured ? (
+                          <Badge variant="default">Featured</Badge>
+                        ) : null}
                         <Badge variant="outline">
                           {detailProduct.category?.name ?? "Uncategorized"}
                         </Badge>
@@ -1282,8 +1481,7 @@ export default function ProductDataTable() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>SKU</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Color</TableHead>
+                        <TableHead>Variant</TableHead>
                         <TableHead className="text-right">Stock</TableHead>
                         <TableHead className="text-right">Price</TableHead>
                         <TableHead className="text-right">Status</TableHead>
@@ -1292,33 +1490,51 @@ export default function ProductDataTable() {
                     <TableBody>
                       {detailProduct.variants &&
                       detailProduct.variants.length ? (
-                        detailProduct.variants.map((variant) => (
-                          <TableRow key={variant.id}>
-                            <TableCell className="font-medium">
-                              {variant.sku}
-                            </TableCell>
-                            <TableCell>{variant.size || "—"}</TableCell>
-                            <TableCell>{variant.color || "—"}</TableCell>
-                            <TableCell className="text-right">
-                              {variant.stockQuantity}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {currencyFormatter.format(variant.finalPrice)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Badge
-                                variant={
-                                  variant.isAvailable ? "default" : "secondary"
-                                }
-                              >
-                                {variant.isAvailable ? "Available" : "Hidden"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                        detailProduct.variants.map((variant) => {
+                          const isVariantAvailable =
+                            variant.isAvailable ?? variant.stockQuantity > 0;
+
+                          return (
+                            <TableRow key={variant.id}>
+                              <TableCell className="font-medium">
+                                {variant.sku}
+                              </TableCell>
+                              <TableCell>
+                                {variant.name ||
+                                  [variant.size, variant.color]
+                                    .filter(Boolean)
+                                    .join(" / ") ||
+                                  "—"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {variant.stockQuantity}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {currencyFormatter.format(
+                                  variant.finalPrice ??
+                                    detailProduct.price +
+                                      (variant.additionalPrice ??
+                                        variant.priceAdjustment ??
+                                        0),
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Badge
+                                  variant={
+                                    isVariantAvailable
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                >
+                                  {isVariantAvailable ? "Available" : "Hidden"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center">
+                          <TableCell colSpan={5} className="text-center">
                             No variants available.
                           </TableCell>
                         </TableRow>
@@ -1496,6 +1712,12 @@ export default function ProductDataTable() {
 
                 <TabsContent value="pricing" className="space-y-4">
                   <div className="rounded-lg border bg-muted/20 p-4">
+                    {modalMode === "add" ? (
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        New products are created as Active and not Featured by default.
+                        You can change status and featured settings after creation.
+                      </p>
+                    ) : null}
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="grid gap-2">
                         <Label htmlFor="price">Base Price</Label>
@@ -1518,42 +1740,103 @@ export default function ProductDataTable() {
                           onValueChange={(value) =>
                             setFormData({
                               ...formData,
-                              status: value as ProductStatus,
+                              status: value as ProductLifecycleStatus,
                             })
                           }
+                          disabled={modalMode === "add"}
                         >
                           <SelectTrigger id="status">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="Inactive">Inactive</SelectItem>
+                            {productStatuses.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {toStatusLabel(status)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="sku">Default SKU</Label>
-                        <Input
-                          id="sku"
-                          value={formData.sku}
-                          onChange={(e) =>
-                            setFormData({ ...formData, sku: e.target.value })
+                        <Label htmlFor="isActive">Active</Label>
+                        <Select
+                          value={String(formData.isActive)}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              isActive: value === "true",
+                            })
                           }
-                          placeholder="Used if first variant SKU is empty"
+                          disabled={modalMode === "add"}
+                        >
+                          <SelectTrigger id="isActive">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="isFeatured">Featured</Label>
+                        <Select
+                          value={String(formData.isFeatured)}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              isFeatured: value === "true",
+                            })
+                          }
+                          disabled={modalMode === "add"}
+                        >
+                          <SelectTrigger id="isFeatured">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="false">No</SelectItem>
+                            <SelectItem value="true">Yes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="featuredOrder">Featured Order</Label>
+                        <Input
+                          id="featuredOrder"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={formData.featuredOrder}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              featuredOrder: e.target.value,
+                            })
+                          }
+                          placeholder={
+                            modalMode === "add"
+                              ? "Set after creation"
+                              : "Optional rank (1, 2, 3...)"
+                          }
+                          disabled={modalMode === "add" || !formData.isFeatured}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="stock">Default Stock</Label>
+                        <Label htmlFor="availableDate">Available Date</Label>
                         <Input
-                          id="stock"
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={formData.stock}
+                          id="availableDate"
+                          type="datetime-local"
+                          value={formData.availableDate}
                           onChange={(e) =>
-                            setFormData({ ...formData, stock: e.target.value })
+                            setFormData({
+                              ...formData,
+                              availableDate: e.target.value,
+                            })
                           }
-                          placeholder="Used if first variant stock is empty"
+                          disabled={
+                            modalMode === "add" ||
+                            formData.status !== "COMING_SOON"
+                          }
                         />
                       </div>
                     </div>
@@ -1592,7 +1875,7 @@ export default function ProductDataTable() {
                       <div>
                         <p className="text-sm font-semibold">Variant Setup</p>
                         <p className="text-xs text-muted-foreground">
-                          Add up to 5 variants and attach images for each one.
+                          Add up to 5 variants with pricing and stock details.
                         </p>
                       </div>
                       <Button
@@ -1652,28 +1935,35 @@ export default function ProductDataTable() {
                               <Label>Size</Label>
                               <Input
                                 value={variant.size}
+                                maxLength={50}
                                 onChange={(e) =>
                                   updateVariant(index, "size", e.target.value)
                                 }
-                                placeholder="e.g. M"
+                                placeholder="e.g. M, XL, 42"
                               />
                             </div>
                             <div className="grid gap-2">
                               <Label>Color</Label>
                               <Input
                                 value={variant.color}
+                                maxLength={50}
                                 onChange={(e) =>
                                   updateVariant(index, "color", e.target.value)
                                 }
-                                placeholder="e.g. Black"
+                                placeholder="e.g. Black, #FFFFFF"
                               />
                             </div>
                             <div className="grid gap-2">
                               <Label>SKU</Label>
                               <Input
                                 value={variant.sku}
+                                maxLength={100}
                                 onChange={(e) =>
-                                  updateVariant(index, "sku", e.target.value)
+                                  updateVariant(
+                                    index,
+                                    "sku",
+                                    e.target.value.toUpperCase(),
+                                  )
                                 }
                                 placeholder={
                                   index === 0
@@ -1687,6 +1977,7 @@ export default function ProductDataTable() {
                               <Input
                                 type="number"
                                 min="0"
+                                max="999999"
                                 step="1"
                                 value={variant.stockQuantity}
                                 onChange={(e) =>
@@ -1707,6 +1998,8 @@ export default function ProductDataTable() {
                               <Label>Price Adjustment</Label>
                               <Input
                                 type="number"
+                                min="-99999.99"
+                                max="99999.99"
                                 step="0.01"
                                 value={variant.priceAdjustment}
                                 onChange={(e) =>
@@ -1718,25 +2011,76 @@ export default function ProductDataTable() {
                                 }
                               />
                             </div>
-                            <div className="grid gap-2">
-                              <Label>Images</Label>
+                            <div className="grid gap-2 sm:col-span-2">
+                              <Label htmlFor={`variant-images-${index}`}>
+                                Variant Images
+                              </Label>
                               <Input
+                                id={`variant-images-${index}`}
                                 type="file"
-                                multiple
                                 accept="image/*"
+                                multiple
+                                disabled={modalMode === "edit" && index >= 4}
                                 onChange={(e) =>
-                                  updateVariant(
-                                    index,
-                                    "images",
-                                    Array.from(e.target.files ?? []),
-                                  )
+                                  updateVariantImages(index, e.target.files)
                                 }
                               />
                               <p className="text-xs text-muted-foreground">
-                                {variant.images.length
-                                  ? `${variant.images.length} file(s) selected`
-                                  : "No images selected"}
+                                {modalMode === "edit" && index >= 4
+                                  ? "Image upload is available for variants 1-4 only during update."
+                                  : "Upload new images for this variant."}
                               </p>
+                              {variant.images.length > 0 ? (
+                                <div className="space-y-2 rounded-md border bg-muted/10 p-3">
+                                  <p className="text-xs font-medium text-foreground">
+                                    New image(s): {variant.images.length}
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                                    {variantImagePreviews[index]?.map(
+                                      (preview, previewIndex) => (
+                                        <div
+                                          key={`${preview.name}-${previewIndex}`}
+                                          className="overflow-hidden rounded-md border bg-background"
+                                        >
+                                          <img
+                                            src={preview.url}
+                                            alt={preview.name}
+                                            className="h-24 w-full object-cover"
+                                          />
+                                          <p className="truncate px-2 py-1 text-[10px] text-muted-foreground">
+                                            {preview.name}
+                                          </p>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {modalMode === "edit" &&
+                              variant.existingImageUrls.length > 0 ? (
+                                <div className="space-y-2 rounded-md border bg-muted/10 p-3">
+                                  <p className="text-xs font-medium text-foreground">
+                                    Existing image(s):{" "}
+                                    {variant.existingImageUrls.length}
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                                    {variant.existingImageUrls.map(
+                                      (imageUrl, existingIndex) => (
+                                        <div
+                                          key={`${imageUrl}-${existingIndex}`}
+                                          className="overflow-hidden rounded-md border bg-background"
+                                        >
+                                          <img
+                                            src={imageUrl}
+                                            alt={`Existing variant image ${existingIndex + 1}`}
+                                            className="h-24 w-full object-cover"
+                                          />
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                </div>
+                              ) : null}
                             </div>
                           </div>
 

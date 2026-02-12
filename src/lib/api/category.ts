@@ -1,20 +1,15 @@
-import type { ApiResponse, Category } from "@/types/api";
-import { apiFetch,api } from "@/lib/api/client";
+import type { ApiResponse } from "@/types/api";
+import { api, apiFetch } from "@/lib/api/client";
+import type { Category } from "@/types/product";
 
-export async function getAllCategories(
-): Promise<Category[]> {
-  const json = await api<ApiResponse<Category[]>>(
-    "/api/categories",
-  );
-  return json.data;
+export async function getAllCategories(): Promise<Category[]> {
+  const json = await api<ApiResponse<Category[]>>("/api/categories");
+  return json.data ?? [];
 }
 
-export async function getCategoryById(
-  id: string | number,
-): Promise<Category> {
-  const json = await api<ApiResponse<Category>>(
-    `/api/categories/${id}`,
-  );
+export async function getCategoryById(id: string | number): Promise<Category> {
+  const encodedId = encodeURIComponent(String(id));
+  const json = await api<ApiResponse<Category>>(`/api/categories/${encodedId}`);
   return json.data;
 }
 
@@ -24,48 +19,41 @@ export type CategoryRequestPayload = {
   isActive?: boolean;
 };
 
-export async function createCategory(
-  payload: CategoryRequestPayload,
-  accessToken?: string | null,
-) {
-  const json = await apiFetch<ApiResponse<Category>>(
-    "/api/categories",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-    accessToken,
-  );
+function jsonHeaders(): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+  };
+}
+
+/** ✅ Cookie auth (no accessToken) */
+export async function createCategory(payload: CategoryRequestPayload) {
+  const json = await apiFetch<ApiResponse<Category>>("/api/categories", {
+    method: "POST",
+    headers: jsonHeaders(),
+    body: JSON.stringify(payload),
+  });
   return json.data;
 }
 
-export async function updateCategory(
-  id: number,
-  payload: CategoryRequestPayload,
-  accessToken?: string | null,
-) {
+/** ✅ Cookie auth (no accessToken) */
+export async function updateCategory(id: number, payload: CategoryRequestPayload) {
+  const encodedId = encodeURIComponent(String(id));
   const json = await apiFetch<ApiResponse<Category>>(
-    `/api/categories/${id}`,
+    `/api/categories/${encodedId}`,
     {
       method: "PUT",
+      headers: jsonHeaders(),
       body: JSON.stringify(payload),
     },
-    accessToken,
   );
   return json.data;
 }
 
-export async function deleteCategory(
-  id: number,
-  accessToken?: string | null,
-) {
-  const json = await apiFetch<ApiResponse<null>>(
-    `/api/categories/${id}`,
-    {
-      method: "DELETE",
-    },
-    accessToken,
-  );
+/** ✅ Cookie auth (no accessToken) */
+export async function deleteCategory(id: number) {
+  const encodedId = encodeURIComponent(String(id));
+  const json = await apiFetch<ApiResponse<null>>(`/api/categories/${encodedId}`, {
+    method: "DELETE",
+  });
   return json.data;
 }
-

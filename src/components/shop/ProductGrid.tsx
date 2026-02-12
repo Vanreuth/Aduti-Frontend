@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { Product } from "@/types/api";
+import { Product } from "@/types/product";
 import { motion } from "framer-motion";
 import { ProductCard } from "./ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ type ProductGridProps = {
   gridClassName?: string;
   animated?: boolean;
   animationKey?: string;
+  showComingSoon?: boolean;
 };
 
 export function ProductGrid({
@@ -25,6 +26,7 @@ export function ProductGrid({
   gridClassName,
   animated = true,
   animationKey,
+  showComingSoon = false,
 }: ProductGridProps) {
   if (isLoading) {
     return <ProductGridSkeleton gridClassName={gridClassName} />;
@@ -59,7 +61,7 @@ export function ProductGrid({
       <GridWrapper
         key={animationKey}
         className={cn(
-          "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6",
+          "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5",
           gridClassName,
         )}
         {...gridProps}
@@ -67,10 +69,17 @@ export function ProductGrid({
         {products.map((product) =>
           animated ? (
             <motion.div key={product.id} variants={fadeUpItem}>
-              <ProductCard product={product} />
+              <ProductCard
+                product={product}
+                showComingSoon={showComingSoon}
+              />
             </motion.div>
           ) : (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              showComingSoon={showComingSoon}
+            />
           ),
         )}
       </GridWrapper>
@@ -88,24 +97,24 @@ export function ProductGridSkeleton({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6",
+        "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5",
         gridClassName,
       )}
     >
       {Array.from({ length: items }, (_, i) => `skeleton-${i}`).map((id) => (
         <div
           key={id}
-          className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm"
+          className="w-full rounded-xl border border-zinc-100 bg-white p-3 shadow-sm"
         >
-          <Skeleton className="aspect-3/4 w-full rounded-xl" />
-          <div className="mt-4 space-y-2">
+          <Skeleton className="aspect-[5/6] w-full rounded-lg" />
+          <div className="mt-3 space-y-1.5">
             <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-3.5 w-24" />
           </div>
-          <div className="mt-4 flex gap-2">
-            <Skeleton className="h-10 flex-1 rounded-full" />
-            <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="mt-3 flex gap-1.5">
+            <Skeleton className="h-8 flex-1 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
           </div>
         </div>
       ))}
