@@ -58,22 +58,7 @@ const metrics = [
   },
 ];
 
-
-
-
 export default function AnalyticsPage() {
-  const { accessToken, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !accessToken) {
-      router.replace("/login");
-    }
-  }, [loading, accessToken, router]);
-
-  if (loading) return <div className="p-6">Checking authentication...</div>;
-  if (!accessToken) return null; // redirect is happening
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -234,8 +219,6 @@ export default function AnalyticsPage() {
             </TabsContent>
           </Tabs>
         </div>
-
-        
       </div>
     </div>
   );
