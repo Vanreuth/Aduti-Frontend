@@ -25,7 +25,7 @@ export function MobileMenuSheet({
   const router = useRouter();
   const pathname = usePathname();
 
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const { totalItems } = useCart();
   const { items: wishlistItems } = useWishlist();
 
@@ -35,7 +35,7 @@ export function MobileMenuSheet({
   };
 
   const handleLogout = async () => {
-    await signOut();
+    await logout();
     router.push("/login");
   };
 

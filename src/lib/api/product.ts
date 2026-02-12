@@ -113,8 +113,10 @@ export async function getAllProducts(params?: GetAllProductsParams) {
   if (params?.category?.trim()) sp.set("categorySlug", params.category.trim());
   if (params?.sizeValue?.trim()) sp.set("sizeValue", params.sizeValue.trim());
   if (params?.color?.trim()) sp.set("color", params.color.trim());
-  if (params?.minPrice !== undefined) sp.set("minPrice", String(params.minPrice));
-  if (params?.maxPrice !== undefined) sp.set("maxPrice", String(params.maxPrice));
+  if (params?.minPrice !== undefined)
+    sp.set("minPrice", String(params.minPrice));
+  if (params?.maxPrice !== undefined)
+    sp.set("maxPrice", String(params.maxPrice));
 
   const startDate = toDateParam(params?.startDate);
   const endDate = toDateParam(params?.endDate);

@@ -42,7 +42,7 @@ import {
 export default function OrderPage() {
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
-  const { accessToken } = useAuth();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("khqr");
@@ -102,7 +102,7 @@ export default function OrderPage() {
         }
 
         try {
-          const payment = await verifyPayment(orderId, paymentId, accessToken);
+          const payment = await verifyPayment(orderId, paymentId);
           console.log("[KHQR] Verification response:", JSON.stringify(payment));
 
           // Backend returns status === 'COMPLETED' when payment is successful
@@ -120,7 +120,7 @@ export default function OrderPage() {
         }
       }, 5000); // Poll every 5 seconds
     },
-    [clear, accessToken],
+    [clear],
   );
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -131,7 +131,7 @@ export default function OrderPage() {
       return;
     }
 
-    if (!accessToken) {
+    if (!user) {
       router.push("/login?redirect=/order");
       return;
     }
@@ -153,13 +153,13 @@ export default function OrderPage() {
           })),
         };
 
-        const checkoutResult = await createCheckout(cartPayload, accessToken);
+        const checkoutResult = await createCheckout(cartPayload);
         const orderIdStr = String(checkoutResult.id);
         setOrderId(orderIdStr);
         console.log("[KHQR] Order created, orderId:", orderIdStr);
 
         // Step 2: Generate KHQR
-        const khqrResult = await generateKHQR(orderIdStr, accessToken);
+        const khqrResult = await generateKHQR(orderIdStr);
         console.log("[KHQR] KHQR generated:", JSON.stringify(khqrResult));
         console.log(
           "[KHQR] paymentId:",
@@ -464,7 +464,7 @@ export default function OrderPage() {
                 </CardContent>
 
                 <CardFooter className="bg-gray-50/50 pt-6 pb-6 border-t">
-                  {!accessToken ? (
+                  {!user ? (
                     <Button
                       type="button"
                       size="lg"

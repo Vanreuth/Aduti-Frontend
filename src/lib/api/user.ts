@@ -2,6 +2,17 @@
 import { MeResponse } from "./auth";
 import { API_BASE, apiFetch } from "./client";
 
+export type ProfilePayload = {
+  name: string;
+  address?: string;
+  phoneNumber?: string;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 // register user (with FormData, optional photo)
 export async function register(formData: FormData) {
   const res = await fetch(`${API_BASE}/api/users/register`, {
@@ -41,18 +52,6 @@ export function updateMe(payload: FormData) {
     credentials: "include", // FormData
   });
 }
-
-export type ProfilePayload = {
-  name: string;
-  address?: string;
-  phoneNumber?: string;
-};
-
-export type ChangePasswordPayload = {
-  currentPassword: string;
-  newPassword: string;
-};
-
 export type DashboardUser = {
   id: number;
   username: string;

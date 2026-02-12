@@ -46,7 +46,7 @@ export function Topbar() {
 
   const displayName = user?.username ?? "Guest";
   const email = user?.email ?? "guest@example.com";
-  const avatarUrl = user?.photo ?? "";
+  const avatarUrl = user?.photo ?? undefined;
   const initials =
     displayName
       .split(" ")
@@ -107,7 +107,7 @@ export function Topbar() {
               className="relative h-9 w-9 rounded-full hover:bg-muted/50 transition-colors"
             >
               <Avatar className="h-8 w-8 ring-2 ring-background hover:ring-primary/20 transition-all">
-                <AvatarImage src={avatarUrl} alt={displayName} />
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                   {initials}
                 </AvatarFallback>
