@@ -2,6 +2,7 @@ import Slider from "@/components/homecomponent/Slider";
 import OurPolicy from "@/components/common/OurPolicy";
 import NewsletterBox from "@/components/common/NewsletterBox";
 import CategorySection from "@/components/homecomponent/CategorySection";
+import BrandStrip from "@/components/homecomponent/BrandStrip";
 import FeaturedProducts from "@/components/shop/FeaturedProducts";
 import ProductOverview from "@/components/shop/ProductOverview";
 export default function Home() {
@@ -11,8 +12,9 @@ export default function Home() {
       <Slider />
       <OurPolicy />
       <CategorySection />
-      <FeaturedProducts />
       <ProductOverview />
+      <BrandStrip />
+      <FeaturedProducts />
       <NewsletterBox />
     </div>
   );

@@ -5,53 +5,53 @@ import { ProductGridSkeleton } from "./ProductGrid";
 
 export function ShopLoading() {
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <div className="border-b border-zinc-200 bg-white/90">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="hidden sm:flex items-start justify-between gap-4 mb-4">
-            <div>
-              <Skeleton className="h-3 w-24 mb-2" />
-              <Skeleton className="h-6 w-40 mb-2" />
-              <Skeleton className="h-4 w-56" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-7 w-36 rounded-full" />
-              <Skeleton className="h-7 w-28 rounded-full" />
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#f7f7f7]">
+      <div className="border-b border-zinc-200 bg-zinc-100">
+        <div className="mx-auto max-w-7xl px-4 py-7">
+          <Skeleton className="mb-2 h-8 w-28" />
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="mt-3 h-4 w-72" />
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <Skeleton className="h-11 w-full sm:w-[440px] rounded-xl" />
-              <Skeleton className="hidden sm:block h-4 w-24" />
+      <div className="border-b border-zinc-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+              <Skeleton className="h-10 w-full max-w-[360px] rounded-none" />
+              <Skeleton className="h-3 w-48" />
             </div>
             <div className="flex items-center gap-2">
-              <Skeleton className="sm:hidden h-4 w-24" />
-              <Skeleton className="h-11 w-36 rounded-xl" />
-              <Skeleton className="h-11 w-20 rounded-xl" />
+              <Skeleton className="h-10 w-48 rounded-none" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex gap-8">
-          <aside className="hidden lg:block w-64 shrink-0">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-100">
-              <Skeleton className="h-5 w-24 mb-6" />
-              <div className="space-y-3">
-                <Skeleton className="h-10 w-full rounded-xl" />
-                <Skeleton className="h-10 w-full rounded-xl" />
-                <Skeleton className="h-10 w-full rounded-xl" />
-                <Skeleton className="h-10 w-full rounded-xl" />
+      <div className="mx-auto max-w-7xl px-4 py-9">
+        <div className="flex gap-8 lg:gap-10">
+          <aside className="hidden w-[250px] shrink-0 lg:block">
+            <div className="border border-zinc-200 bg-white p-5">
+              <Skeleton className="mb-5 h-4 w-28" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-11/12" />
+                <Skeleton className="h-4 w-10/12" />
+                <Skeleton className="h-4 w-9/12" />
               </div>
-              <Skeleton className="h-px w-full my-6" />
-              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="my-5 h-px w-full" />
+              <div className="grid grid-cols-3 gap-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+              <Skeleton className="my-5 h-px w-full" />
+              <Skeleton className="h-9 w-full rounded-none" />
             </div>
           </aside>
 
           <div className="flex-1">
-            <ProductGridSkeleton />
+            <ProductGridSkeleton gridClassName="grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 lg:gap-6" />
           </div>
         </div>
       </div>

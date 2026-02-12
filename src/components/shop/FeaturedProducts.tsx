@@ -118,13 +118,13 @@ export default function FeaturedProducts() {
         products={sections.bestSellers.products}
         loading={sections.bestSellers.loading}
       />
-      <FeaturedSection
-        products={sections.featured.products}
-        loading={sections.featured.loading}
-      />
       <ComingSoonSection
         products={sections.comingSoon.products}
         loading={sections.comingSoon.loading}
+      />
+       <FeaturedSection
+        products={sections.featured.products}
+        loading={sections.featured.loading}
       />
     </>
   );

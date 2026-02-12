@@ -39,7 +39,7 @@ export default function ProductOverview() {
 
       const [cats, productData] = await Promise.all([
         getAllCategories(),
-        getAllProducts({ page: 0, size: 4, sortBy: "id", direction: "DESC" }),
+        getAllProducts({ page: 0, size: 5, sortBy: "id", direction: "DESC" }),
       ]);
 
       setCategories(cats);
