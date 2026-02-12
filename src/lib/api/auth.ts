@@ -1,5 +1,5 @@
-//
 // src/lib/api/auth.ts
+
 import { apiFetch } from "./client";
 
 export type MeResponse = {
@@ -15,22 +15,12 @@ export type LoginResponse = {
   user: MeResponse;
 };
 
-// export async function loginApi(data: {
-//   email: string;
-//   password: string;
-// }): Promise<LoginResponse> {
-//   const res = await apiFetch<LoginResponse>("/api/auth/login", {
-//     method: "POST",
-//     body: JSON.stringify(data),
-//   });
-
-//   return res;
-// }
-
-export async function loginApi(data: {
-  email: string;
+export type LoginData = {
+  username: string;
   password: string;
-}): Promise<LoginResponse> {
+};
+
+export async function loginApi(data: LoginData): Promise<LoginResponse> {
   return apiFetch<LoginResponse>("/api/auth/login", {
     method: "POST",
     headers: {
@@ -43,10 +33,13 @@ export async function loginApi(data: {
 export function getMe() {
   return apiFetch<MeResponse>("/api/auth/me", {
     method: "GET",
-    credentials: "include", // ✅ correct
+    credentials: "include",
   });
 }
 
-export function logout() {
-  return apiFetch("/api/auth/logout", { method: "POST" });
+export async function logoutApi() {
+  return apiFetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
 }
