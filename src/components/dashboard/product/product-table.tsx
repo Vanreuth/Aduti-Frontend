@@ -184,7 +184,7 @@ function getVariantTabValue(index: number) {
 }
 
 export default function ProductDataTable() {
-  const { accessToken } = useAuth();
+  const { user } = useAuth();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -426,7 +426,7 @@ export default function ProductDataTable() {
     return () => {
       active = false;
     };
-  }, [accessToken]);
+  }, [user]);
 
   useEffect(() => {
     if (
@@ -762,7 +762,6 @@ export default function ProductDataTable() {
         await createProduct(
           payload,
           formData.variants.map((variant) => variant.images),
-          accessToken,
         );
         setIsModalOpen(false);
         setCurrentPage(1);
@@ -842,7 +841,6 @@ export default function ProductDataTable() {
           selectedProduct.id,
           payload,
           formData.variants.map((variant) => variant.images),
-          accessToken,
         );
         setIsModalOpen(false);
         setRefreshKey((prev) => prev + 1);
@@ -872,7 +870,7 @@ export default function ProductDataTable() {
 
     try {
       setIsDeleting(true);
-      await deleteProduct(selectedProduct.id, accessToken);
+      await deleteProduct(selectedProduct.id);
       setIsDeleteModalOpen(false);
       setRefreshKey((prev) => prev + 1);
       toast.success("Product deleted", {

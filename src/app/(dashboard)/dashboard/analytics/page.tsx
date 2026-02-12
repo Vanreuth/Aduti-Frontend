@@ -58,21 +58,18 @@ const metrics = [
   },
 ];
 
-
-
-
 export default function AnalyticsPage() {
-  const { accessToken, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !accessToken) {
+    if (!loading && !user) {
       router.replace("/login");
     }
-  }, [loading, accessToken, router]);
+  }, [loading, user, router]);
 
   if (loading) return <div className="p-6">Checking authentication...</div>;
-  if (!accessToken) return null; // redirect is happening
+  if (!user) return null; // redirect is happening
 
   return (
     <div className="space-y-6">
@@ -234,8 +231,6 @@ export default function AnalyticsPage() {
             </TabsContent>
           </Tabs>
         </div>
-
-        
       </div>
     </div>
   );

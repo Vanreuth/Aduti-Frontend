@@ -7,8 +7,21 @@ export async function apiFetch<T>(
   const isAuthRoute =
     url.includes("/api/auth/login") || url.includes("/api/auth/refresh");
 
+  // Auto-add Content-Type for JSON bodies (unless already set or it's FormData)
+  const headers: HeadersInit = {
+    ...((options.headers as Record<string, string>) || {}),
+  };
+  if (
+    options.body &&
+    typeof options.body === "string" &&
+    !headers["Content-Type"]
+  ) {
+    headers["Content-Type"] = "application/json";
+  }
+
   let res = await fetch(`${API_BASE}${url}`, {
     ...options,
+    headers,
     credentials: "include",
   });
 
@@ -23,6 +36,7 @@ export async function apiFetch<T>(
       // Retry original request
       res = await fetch(`${API_BASE}${url}`, {
         ...options,
+        headers,
         credentials: "include",
       });
     } else {
