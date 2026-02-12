@@ -16,11 +16,11 @@ const fallbackBrands = [
 ];
 
 const brandStyles = [
-  "text-[1.9rem] font-light uppercase tracking-[0.2em] text-zinc-800 sm:text-[2.1rem]",
-  "text-[2.15rem] font-semibold uppercase tracking-[0.08em] text-zinc-900 sm:text-[2.5rem]",
-  "text-[2.2rem] font-medium tracking-[0.01em] text-zinc-900 sm:text-[2.75rem]",
-  "text-[2.4rem] font-black tracking-[-0.045em] text-black sm:text-[3.05rem]",
-  "text-[1.85rem] font-semibold uppercase tracking-[0.08em] text-zinc-900 sm:text-[2.1rem]",
+  "text-[clamp(1.15rem,4.2vw,2rem)] font-light uppercase tracking-[0.12em] text-zinc-800",
+  "text-[clamp(1.2rem,4.6vw,2.3rem)] font-semibold uppercase tracking-[0.08em] text-zinc-900",
+  "text-[clamp(1.2rem,4.8vw,2.4rem)] font-medium tracking-[0.02em] text-zinc-900",
+  "text-[clamp(1.3rem,5vw,2.6rem)] font-black tracking-[-0.03em] text-black",
+  "text-[clamp(1.1rem,4.1vw,2rem)] font-semibold uppercase tracking-[0.07em] text-zinc-900",
 ];
 
 function normalizeBrand(value: unknown) {
@@ -82,7 +82,7 @@ export default function BrandStrip() {
   const renderedBrands = useMemo(() => brands.slice(0, MAX_BRANDS), [brands]);
 
   return (
-    <section className="w-full bg-[#eceef1] py-14 sm:py-16 lg:py-20">
+    <section className="w-full bg-[#eceef1] py-10 sm:py-14 lg:py-20">
       <motion.div
         className="container-app"
         variants={staggerContainer}
@@ -90,15 +90,15 @@ export default function BrandStrip() {
         whileInView="show"
         viewport={{ once: true, amount: 0.25 }}
       >
-        <ul className="grid grid-cols-2 items-center gap-x-8 gap-y-10 text-center sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-12">
+        <ul className="grid grid-cols-2 items-center gap-x-5 gap-y-7 text-center sm:grid-cols-3 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-5 lg:gap-x-12">
           {renderedBrands.map((brand, index) => (
             <motion.li
               key={brand}
               variants={fadeUpItem}
-              className="flex min-h-12 items-center justify-center"
+              className="flex min-h-10 min-w-0 items-center justify-center sm:min-h-12"
             >
               <span
-                className={`${brandStyles[index % brandStyles.length]} transition-opacity duration-300 hover:opacity-70`}
+                className={`${brandStyles[index % brandStyles.length]} max-w-full break-words text-center leading-none transition-opacity duration-300 hover:opacity-70`}
               >
                 {brand}
               </span>

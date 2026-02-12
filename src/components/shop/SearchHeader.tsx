@@ -56,7 +56,7 @@ export function SearchHeader({
     <div className="border-b border-zinc-200 bg-white">
       <div className="border-b border-zinc-200 bg-zinc-100">
         <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-7">
-          <h1 className="text-[26px] font-semibold text-zinc-900">{title}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 sm:text-[26px]">{title}</h1>
           <div className="flex items-center gap-1.5 text-xs text-zinc-500">
             <span>Home</span>
             <ChevronRight className="h-3.5 w-3.5" />
@@ -68,10 +68,10 @@ export function SearchHeader({
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:py-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative w-full max-w-[360px]">
+            <div className="relative w-full max-w-none sm:max-w-[360px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <Input
                 value={query}
@@ -100,10 +100,10 @@ export function SearchHeader({
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex w-full flex-col gap-2 text-xs sm:w-auto sm:flex-row sm:items-center">
             <span className="text-zinc-500">Sort by:</span>
             <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortBy)}>
-              <SelectTrigger className="h-10 min-w-[210px] rounded-none border-zinc-300 text-left text-sm">
+              <SelectTrigger className="h-10 w-full rounded-none border-zinc-300 text-left text-sm sm:min-w-[210px] sm:w-auto">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>

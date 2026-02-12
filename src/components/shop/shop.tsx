@@ -431,8 +431,8 @@ export const ShopContent = () => {
         onClear={clearSearch}
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-9">
-        <div className="flex gap-8 lg:gap-10">
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:py-9">
+        <div className="flex gap-5 sm:gap-8 lg:gap-10">
           <FiltersPanel activeCount={activeFilterCount}>
             <FilterSidebar
               categories={categoryOptions}
@@ -495,11 +495,11 @@ export const ShopContent = () => {
               )}
             </AnimatePresence>
 
-            <div className="mt-10 flex items-center justify-center gap-1.5">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-1.5 sm:mt-10">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 rounded-full border-zinc-300 bg-white text-xs"
+                className="h-8 w-8 rounded-full border-zinc-300 bg-white text-xs sm:h-9 sm:w-9"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={isFirstPage || fetching}
               >
@@ -514,8 +514,8 @@ export const ShopContent = () => {
                     variant="ghost"
                     className={
                       isActive
-                        ? "h-8 min-w-8 rounded-full bg-zinc-900 px-2 text-xs font-semibold text-white hover:bg-zinc-900"
-                        : "h-8 min-w-8 rounded-full px-2 text-xs text-zinc-600 hover:bg-zinc-200"
+                        ? "h-8 min-w-8 rounded-full bg-zinc-900 px-2 text-xs font-semibold text-white hover:bg-zinc-900 sm:h-9 sm:min-w-9"
+                        : "h-8 min-w-8 rounded-full px-2 text-xs text-zinc-600 hover:bg-zinc-200 sm:h-9 sm:min-w-9"
                     }
                     onClick={() => setPage(pageIndex)}
                     disabled={fetching}
@@ -528,7 +528,7 @@ export const ShopContent = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 rounded-full border-zinc-300 bg-white text-xs"
+                className="h-8 w-8 rounded-full border-zinc-300 bg-white text-xs sm:h-9 sm:w-9"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={isLastPage || fetching}
               >

@@ -7,7 +7,7 @@ import FeaturedProducts from "@/components/shop/FeaturedProducts";
 import ProductOverview from "@/components/shop/ProductOverview";
 export default function Home() {
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans">
+    <div className="min-h-screen overflow-x-hidden bg-zinc-50 font-sans">
       {/*  Slider */}
       <Slider />
       <OurPolicy />
