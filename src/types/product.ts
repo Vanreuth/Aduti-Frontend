@@ -131,6 +131,7 @@ export type GetAllProductsParams = {
   sortBy?: string;
   direction?: "ASC" | "DESC";
   search?: string;
+  isActive?: boolean;
   category?: string;
   sizeValue?: string;
   color?: string;

@@ -111,6 +111,8 @@ export async function getAllProducts(params?: GetAllProductsParams) {
   });
 
   if (params?.search?.trim()) sp.set("search", params.search.trim());
+  if (params?.isActive !== undefined)
+    sp.set("isActive", String(params.isActive));
   if (params?.category?.trim()) sp.set("categorySlug", params.category.trim());
   if (params?.sizeValue?.trim()) sp.set("sizeValue", params.sizeValue.trim());
   if (params?.color?.trim()) sp.set("color", params.color.trim());
