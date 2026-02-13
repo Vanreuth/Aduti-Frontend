@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,17 +17,6 @@ import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { ThemeSwitcher } from "./theme-switcher";
 import { useAuth } from "@/context/AuthContext";
-import { decodeJwtPayload } from "@/lib/jwt";
-
-type JwtPayload = {
-  sub?: string; // often email/username
-  email?: string;
-  username?: string;
-  name?: string;
-  picture?: string;
-  photo?: string;
-  photoURL?: string;
-};
 
 function getInitials(name: string) {
   const n = name.trim();
@@ -44,17 +32,16 @@ function getInitials(name: string) {
 export function Topbar() {
   const { user, logout } = useAuth();
 
-  const displayName = user?.username ?? "Guest";
-  const email = user?.email ?? "guest@example.com";
-  const avatarUrl = user?.photo ?? undefined;
-  const initials =
-    displayName
-      .split(" ")
-      .filter(Boolean)
-      .map((p) => p[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "GU";
+  const displayName =
+    typeof user?.username === "string" && user.username.trim()
+      ? user.username
+      : "Guest";
+  const email =
+    typeof user?.email === "string" && user.email.trim()
+      ? user.email
+      : "guest@example.com";
+  const avatarUrl = typeof user?.photo === "string" ? user.photo : undefined;
+  const initials = getInitials(displayName) || "GU";
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center max-w-md flex-1">

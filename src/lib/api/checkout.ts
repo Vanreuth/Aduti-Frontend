@@ -51,6 +51,13 @@ export type VerifyPaymentResponse = {
   paidAt: string | null;
 };
 
+function requireData<T>(data: T | null, message: string): T {
+  if (data === null) {
+    throw new Error(message);
+  }
+  return data;
+}
+
 /**
  * Step 1: Create an order from the cart
  * POST /api/orders/checkout
@@ -59,7 +66,7 @@ export function createCheckout(payload: CheckoutRequest) {
   return apiFetch<CheckoutResponse>("/api/orders/checkout", {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }).then((data) => requireData(data, "Checkout response is empty"));
 }
 
 /**
@@ -73,7 +80,7 @@ export function generateKHQR(orderId: string) {
       method: "POST",
       body: JSON.stringify({ method: "KHQR" }),
     },
-  );
+  ).then((data) => requireData(data, "KHQR response is empty"));
 }
 
 /**
@@ -84,7 +91,7 @@ export function processCashPayment(orderId: string) {
   return apiFetch<CashPaymentResponse>(
     `/api/orders/${encodeURIComponent(orderId)}/payment/cash`,
     { method: "POST" },
-  );
+  ).then((data) => requireData(data, "Cash payment response is empty"));
 }
 
 /**
@@ -95,7 +102,7 @@ export function verifyPayment(orderId: string, paymentId: string) {
   return apiFetch<VerifyPaymentResponse>(
     `/api/orders/${encodeURIComponent(orderId)}/payment/${encodeURIComponent(paymentId)}/verify`,
     { method: "GET" },
-  );
+  ).then((data) => requireData(data, "Verify payment response is empty"));
 }
 
 /**
@@ -103,7 +110,9 @@ export function verifyPayment(orderId: string, paymentId: string) {
  * GET /api/orders
  */
 export function getOrders() {
-  return apiFetch<{ orders: unknown[] }>("/api/orders", { method: "GET" });
+  return apiFetch<{ orders: unknown[] }>("/api/orders", { method: "GET" }).then(
+    (data) => requireData(data, "Orders response is empty"),
+  );
 }
 
 /**
@@ -114,5 +123,5 @@ export function getOrder(orderId: string) {
   return apiFetch<{ order: unknown }>(
     `/api/orders/${encodeURIComponent(orderId)}`,
     { method: "GET" },
-  );
+  ).then((data) => requireData(data, "Order response is empty"));
 }
