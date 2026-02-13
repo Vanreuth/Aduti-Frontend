@@ -23,7 +23,7 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    title: "Welcome to Aduti",
+    title: "Welcome to Aditi",
     subtitle: "Discover Amazing Products",
     description:
       "Shop the latest trends with exclusive deals and fast delivery.",
@@ -35,7 +35,7 @@ const slides: Slide[] = [
   {
     id: 2,
     title: "New Arrivals",
-    subtitle: "Fresh Styles for 2025",
+    subtitle: "Fresh Styles for 2026",
     description:
       "Explore our newest collection of premium products at unbeatable prices.",
     image:
@@ -80,12 +80,12 @@ const contentVariants = {
 export default function HeroSlider() {
   const autoplay = useMemo<AutoplayType>(
     () => Autoplay({ delay: 5000, stopOnInteraction: false }),
-    []
+    [],
   );
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, skipSnaps: false },
-    [autoplay]
+    [autoplay],
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -108,7 +108,7 @@ export default function HeroSlider() {
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
   const scrollTo = useCallback(
     (i: number) => emblaApi?.scrollTo(i),
-    [emblaApi]
+    [emblaApi],
   );
 
   const handleMouseEnter = useCallback(() => autoplay.stop(), [autoplay]);
@@ -254,7 +254,7 @@ export default function HeroSlider() {
                 "h-2.5 rounded-full transition-all",
                 i === selectedIndex
                   ? "w-8 bg-white"
-                  : "w-2.5 bg-white/55 hover:bg-white/80"
+                  : "w-2.5 bg-white/55 hover:bg-white/80",
               )}
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === selectedIndex ? "true" : "false"}

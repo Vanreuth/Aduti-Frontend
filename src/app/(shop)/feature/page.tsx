@@ -126,7 +126,7 @@ export default function Features() {
 
         <div className="relative z-10 mx-auto max-w-7xl text-center">
           <h1 className="mb-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
-            Why Choose <span className="text-emerald-400">Aduti</span>?
+            Why Choose <span className="text-emerald-400">Aditi</span>?
           </h1>
           <p className="mx-auto mb-8 max-w-3xl text-base text-zinc-300 sm:text-lg md:text-xl">
             We&apos;re committed to providing you with the best shopping

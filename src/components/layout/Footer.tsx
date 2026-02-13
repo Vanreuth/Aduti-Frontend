@@ -104,7 +104,7 @@ const Footer = () => {
                 />
               </div>
               <div>
-                <p className="text-base font-semibold text-foreground">Aduti</p>
+                <p className="text-base font-semibold text-foreground">Aditi</p>
                 <p className="text-xs text-muted-foreground">
                   Premium fashion store
                 </p>
@@ -229,7 +229,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="mt-6 border-t pt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Aduti Store. All rights reserved.
+            © {new Date().getFullYear()} Aditi Store. All rights reserved.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 text-xs">
