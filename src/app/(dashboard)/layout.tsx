@@ -153,8 +153,24 @@ export default function DashboardLayout({
       .then((user) => {
         if (!mounted) return;
 
-        if (!user.roles?.includes("ADMIN")) {
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        const roleList =
+          user.roles && user.roles.length > 0
+            ? user.roles
+            : user.role
+              ? [user.role]
+              : [];
+        const hasAdminRole = roleList.some(
+          (role) => role.toUpperCase() === "ADMIN",
+        );
+
+        if (!hasAdminRole) {
           router.replace("/unauthorized");
+          return;
         } else {
           setAuthorized(true);
         }
