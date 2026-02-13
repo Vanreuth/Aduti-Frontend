@@ -9,6 +9,8 @@ export type MeResponse = {
   photo: string | null;
   phoneNumber: string | null;
   address: string | null;
+  roles?: string[];
+  role?: string;
 };
 
 export type LoginResponse = {

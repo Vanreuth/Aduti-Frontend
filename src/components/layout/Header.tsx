@@ -99,9 +99,9 @@ export default function Navbar() {
             className="flex items-center shrink-0"
             aria-label="Go to home"
           >
-            <div className="relative h-16 w-16 sm:h-20 sm:w-20">
+            <div className="relative h-20 w-20 sm:h-25 sm:w-25">
               <Image
-                src="/Shop_Logo.png"
+                src="/aditilogo.png"
                 alt="Aduti Logo"
                 fill
                 className="object-contain"

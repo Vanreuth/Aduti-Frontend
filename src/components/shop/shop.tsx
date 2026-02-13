@@ -147,6 +147,7 @@ export const ShopContent = () => {
           sortBy: sortConfig.sortBy,
           direction: sortConfig.direction,
           search: debouncedQuery || undefined,
+          isActive: true,
           category: categoryFilter,
           sizeValue: sizeFilter,
           color: colorFilter,
@@ -182,9 +183,14 @@ export const ShopContent = () => {
     sortBy,
   ]);
 
+  const activeProducts = useMemo(
+    () => pageData.products.filter((product) => product.isActive),
+    [pageData.products],
+  );
+
   const sizeOptions = useMemo(() => {
     const values = new Set<string>();
-    for (const product of pageData.products) {
+    for (const product of activeProducts) {
       for (const variant of product.variants ?? []) {
         if (variant.size) values.add(String(variant.size));
       }
@@ -195,11 +201,11 @@ export const ShopContent = () => {
         .sort((a, b) => a.localeCompare(b))
         .map((value) => ({ label: value, value })),
     );
-  }, [pageData.products, sizeValue]);
+  }, [activeProducts, sizeValue]);
 
   const colorOptions = useMemo(() => {
     const values = new Set<string>();
-    for (const product of pageData.products) {
+    for (const product of activeProducts) {
       for (const variant of product.variants ?? []) {
         if (variant.color) values.add(String(variant.color));
       }
@@ -210,13 +216,13 @@ export const ShopContent = () => {
         .sort((a, b) => a.localeCompare(b))
         .map((value) => ({ label: value, value })),
     );
-  }, [pageData.products, colorValue]);
+  }, [activeProducts, colorValue]);
 
   const brandOptions = useMemo(() => {
     const seen = new Set<string>();
     const values: string[] = [];
 
-    for (const product of pageData.products) {
+    for (const product of activeProducts) {
       if (typeof product.brand !== "string") continue;
       const trimmed = product.brand.trim();
       if (!trimmed || trimmed.toLowerCase() === "null") continue;
@@ -228,7 +234,7 @@ export const ShopContent = () => {
     }
 
     return values.slice(0, 5);
-  }, [pageData.products]);
+  }, [activeProducts]);
 
   const handleReset = () => {
     setPriceRange(0);
@@ -268,7 +274,7 @@ export const ShopContent = () => {
     }
   };
 
-  const gridKey = `${debouncedQuery}|${priceRange}|${sortBy}|${page}|${pageData.products.length}`;
+  const gridKey = `${debouncedQuery}|${priceRange}|${sortBy}|${page}|${activeProducts.length}`;
 
   const isInitialLoading = !productsLoaded;
   const totalResults = pageData.totalElements ?? pageData.products.length;
@@ -282,7 +288,7 @@ export const ShopContent = () => {
       ? 0
       : Math.min(
           totalResults,
-          pageStart + Math.max(0, pageData.products.length - 1),
+          pageStart + Math.max(0, activeProducts.length - 1),
         );
   const resultsLabel =
     totalResults === 0
@@ -466,7 +472,7 @@ export const ShopContent = () => {
 
           <div className="min-w-0 flex-1">
             <AnimatePresence mode="wait">
-              {pageData.products.length === 0 && !fetching ? (
+              {activeProducts.length === 0 && !fetching ? (
                 <motion.div
                   key="empty"
                   initial={{ opacity: 0, y: 10 }}
@@ -485,7 +491,7 @@ export const ShopContent = () => {
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <ProductGrid
-                    products={pageData.products}
+                    products={activeProducts}
                     isUpdating={fetching}
                     gridClassName="grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 lg:gap-6"
                     animated

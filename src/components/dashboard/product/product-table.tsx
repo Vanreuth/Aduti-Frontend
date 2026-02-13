@@ -214,6 +214,32 @@ function formatDate(value?: string | null) {
   }).format(date);
 }
 
+function formatDateTime(value?: string) {
+  if (!value?.trim()) return "Not set";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getFileKey(file: File) {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
+function formatFileSize(sizeInBytes: number) {
+  if (!Number.isFinite(sizeInBytes) || sizeInBytes <= 0) return "0 B";
+  if (sizeInBytes < 1024) return `${sizeInBytes} B`;
+  const kb = sizeInBytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
 function getPrimaryImage(product: Product) {
   for (const variant of product.variants ?? []) {
     for (const image of variant.images ?? []) {
@@ -717,9 +743,45 @@ export default function ProductDataTable() {
   const updateVariantImages = (index: number, files: FileList | null) => {
     setFormData((prev) => {
       const next = [...prev.variants];
+      const currentImages = next[index]?.images ?? [];
+      const incomingFiles = files ? Array.from(files) : [];
+      const mergedImages = [...currentImages];
+
+      for (const file of incomingFiles) {
+        const key = getFileKey(file);
+        const exists = mergedImages.some((image) => getFileKey(image) === key);
+        if (!exists) mergedImages.push(file);
+      }
+
       next[index] = {
         ...next[index],
-        images: files ? Array.from(files) : [],
+        images: mergedImages,
+      };
+      return { ...prev, variants: next };
+    });
+  };
+
+  const removeVariantImage = (variantIndex: number, imageIndex: number) => {
+    setFormData((prev) => {
+      const next = [...prev.variants];
+      const variant = next[variantIndex];
+      if (!variant) return prev;
+      next[variantIndex] = {
+        ...variant,
+        images: variant.images.filter((_, idx) => idx !== imageIndex),
+      };
+      return { ...prev, variants: next };
+    });
+  };
+
+  const clearVariantImages = (variantIndex: number) => {
+    setFormData((prev) => {
+      const next = [...prev.variants];
+      const variant = next[variantIndex];
+      if (!variant || variant.images.length === 0) return prev;
+      next[variantIndex] = {
+        ...variant,
+        images: [],
       };
       return { ...prev, variants: next };
     });
@@ -857,6 +919,22 @@ export default function ProductDataTable() {
     };
   }, [formData.price, formData.variants]);
 
+  const selectedCategoryName = useMemo(() => {
+    const category = categories.find(
+      (item) => String(item.id) === formData.categoryId,
+    );
+    return category?.name ?? "No category selected";
+  }, [categories, formData.categoryId]);
+
+  const totalSelectedImages = useMemo(
+    () =>
+      formData.variants.reduce(
+        (sum, variant) => sum + (variant.images?.length ?? 0),
+        0,
+      ),
+    [formData.variants],
+  );
+
   const variantImagePreviews = useMemo(() => {
     if (typeof window === "undefined") {
       return formData.variants.map(() => []);
@@ -920,17 +998,26 @@ export default function ProductDataTable() {
         return;
       }
 
+      if (formData.status === "COMING_SOON" && !formData.availableDate.trim()) {
+        setFormError("Available date is required for coming soon products.");
+        setFormTab("pricing");
+        return;
+      }
+
       const payload: ProductCreatePayload = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         price: priceValue,
         brand: formData.brand.trim() || undefined,
         categoryId,
-        isActive: true,
+        isActive: formData.isActive,
         isFeatured: false,
         featuredOrder: undefined,
-        status: "ACTIVE",
-        availableDate: undefined,
+        status: formData.status,
+        availableDate:
+          formData.status === "COMING_SOON"
+            ? formData.availableDate
+            : undefined,
         variants: variantsPayload,
       };
       const variantImages = formData.variants.map((variant) => variant.images);
@@ -1089,6 +1176,60 @@ export default function ProductDataTable() {
 
   const detailPrimaryImage =
     detailImages[detailActiveImageIndex] ?? "/product/placeholder.svg";
+  const detailResolvedStatus: ProductLifecycleStatus | null = detailProduct
+    ? detailProduct.status ?? (detailProduct.isActive ? "ACTIVE" : "DISCONTINUED")
+    : null;
+  const detailVariantMetrics = useMemo(() => {
+    if (!detailProduct) {
+      return {
+        totalVariants: 0,
+        availableVariants: 0,
+        hiddenVariants: 0,
+        totalStock: 0,
+        minPrice: 0,
+        maxPrice: 0,
+        priceRangeLabel: currencyFormatter.format(0),
+      };
+    }
+
+    const variants = detailProduct.variants ?? [];
+    const totalVariants = variants.length;
+    const totalStock = variants.reduce(
+      (sum, variant) => sum + (variant.stockQuantity ?? 0),
+      0,
+    );
+    const availableVariants = variants.filter(
+      (variant) => variant.isAvailable ?? variant.stockQuantity > 0,
+    ).length;
+    const hiddenVariants = Math.max(0, totalVariants - availableVariants);
+
+    const variantPrices = variants.length
+      ? variants.map(
+          (variant) =>
+            variant.finalPrice ??
+            detailProduct.price +
+              (variant.additionalPrice ?? variant.priceAdjustment ?? 0),
+        )
+      : [detailProduct.price];
+    const minPrice = Math.min(...variantPrices);
+    const maxPrice = Math.max(...variantPrices);
+    const priceRangeLabel =
+      minPrice === maxPrice
+        ? currencyFormatter.format(minPrice)
+        : `${currencyFormatter.format(minPrice)} - ${currencyFormatter.format(
+            maxPrice,
+          )}`;
+
+    return {
+      totalVariants,
+      availableVariants,
+      hiddenVariants,
+      totalStock,
+      minPrice,
+      maxPrice,
+      priceRangeLabel,
+    };
+  }, [detailProduct]);
 
   return (
     <div className="w-full space-y-4">
@@ -1395,20 +1536,13 @@ export default function ProductDataTable() {
                         {detailProduct.name}
                       </h3>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={getStatusBadgeVariant(
-                            detailProduct.status ??
-                              (detailProduct.isActive
-                                ? "ACTIVE"
-                                : "DISCONTINUED"),
-                          )}
-                        >
-                          {toStatusLabel(
-                            detailProduct.status ??
-                              (detailProduct.isActive
-                                ? "ACTIVE"
-                                : "DISCONTINUED"),
-                          )}
+                        {detailResolvedStatus ? (
+                          <Badge variant={getStatusBadgeVariant(detailResolvedStatus)}>
+                            {toStatusLabel(detailResolvedStatus)}
+                          </Badge>
+                        ) : null}
+                        <Badge variant={detailProduct.isActive ? "outline" : "secondary"}>
+                          {detailProduct.isActive ? "Public in shop" : "Hidden from shop"}
                         </Badge>
                         {detailProduct.isFeatured ? (
                           <Badge variant="default">Featured</Badge>
@@ -1420,6 +1554,12 @@ export default function ProductDataTable() {
                           {detailProduct.brand || "No brand"}
                         </Badge>
                       </div>
+                      {detailResolvedStatus === "COMING_SOON" ? (
+                        <p className="text-xs text-muted-foreground">
+                          Expected availability:{" "}
+                          {formatDateTime(detailProduct.availableDate ?? undefined)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="rounded-lg border bg-muted/30 px-3 py-2 text-right">
                       <p className="text-xs text-muted-foreground">
@@ -1428,6 +1568,12 @@ export default function ProductDataTable() {
                       <p className="text-lg font-semibold">
                         {currencyFormatter.format(detailProduct.price)}
                       </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Variant Range
+                      </p>
+                      <p className="text-sm font-medium">
+                        {detailVariantMetrics.priceRangeLabel}
+                      </p>
                     </div>
                   </div>
 
@@ -1435,7 +1581,7 @@ export default function ProductDataTable() {
                     {detailProduct.description || "No description provided."}
                   </p>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded-md border bg-muted/30 p-3">
                       <p className="text-xs text-muted-foreground">Created</p>
                       <p className="font-medium">
@@ -1449,9 +1595,27 @@ export default function ProductDataTable() {
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-3">
+                      <p className="text-xs text-muted-foreground">Created By</p>
+                      <p className="font-medium">
+                        {detailProduct.createdByUsername || "System"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-3">
+                      <p className="text-xs text-muted-foreground">Available Date</p>
+                      <p className="font-medium">
+                        {detailResolvedStatus === "COMING_SOON"
+                          ? formatDateTime(detailProduct.availableDate ?? undefined)
+                          : "Not required"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-3">
                       <p className="text-xs text-muted-foreground">Variants</p>
                       <p className="font-medium">
-                        {detailProduct.variants?.length ?? 0}
+                        {detailVariantMetrics.totalVariants}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {detailVariantMetrics.availableVariants} available •{" "}
+                        {detailVariantMetrics.hiddenVariants} hidden
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-3">
@@ -1459,10 +1623,7 @@ export default function ProductDataTable() {
                         Total Stock
                       </p>
                       <p className="font-medium">
-                        {(detailProduct.variants ?? []).reduce(
-                          (sum, variant) => sum + (variant.stockQuantity ?? 0),
-                          0,
-                        )}
+                        {detailVariantMetrics.totalStock}
                       </p>
                     </div>
                   </div>
@@ -1470,11 +1631,26 @@ export default function ProductDataTable() {
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold">Variants</h4>
-                  <span className="text-xs text-muted-foreground">
-                    {detailProduct.variants?.length ?? 0} variants
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-semibold">Variants</h4>
+                    <p className="text-xs text-muted-foreground">
+                      SKU, stock, price, and availability breakdown
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={
+                        detailVariantMetrics.availableVariants > 0
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {detailVariantMetrics.availableVariants}/
+                      {detailVariantMetrics.totalVariants} available
+                    </Badge>
+                    <Badge variant="outline">{detailImages.length} image(s)</Badge>
+                  </div>
                 </div>
                 <div className="max-h-[280px] overflow-auto rounded-md border">
                   <Table>
@@ -1490,12 +1666,13 @@ export default function ProductDataTable() {
                     <TableBody>
                       {detailProduct.variants &&
                       detailProduct.variants.length ? (
-                        detailProduct.variants.map((variant) => {
+                        detailProduct.variants.map((variant, index) => {
                           const isVariantAvailable =
                             variant.isAvailable ?? variant.stockQuantity > 0;
+                          const variantRowKey = `${variant.id}-${variant.sku}-${index}`;
 
                           return (
-                            <TableRow key={variant.id}>
+                            <TableRow key={variantRowKey}>
                               <TableCell className="font-medium">
                                 {variant.sku}
                               </TableCell>
@@ -1714,8 +1891,8 @@ export default function ProductDataTable() {
                   <div className="rounded-lg border bg-muted/20 p-4">
                     {modalMode === "add" ? (
                       <p className="mb-3 text-xs text-muted-foreground">
-                        New products are created as Active and not Featured by default.
-                        You can change status and featured settings after creation.
+                        You can set status and active visibility during creation.
+                        Featured settings are managed after creation.
                       </p>
                     ) : null}
                     <div className="grid gap-4 md:grid-cols-2">
@@ -1743,7 +1920,6 @@ export default function ProductDataTable() {
                               status: value as ProductLifecycleStatus,
                             })
                           }
-                          disabled={modalMode === "add"}
                         >
                           <SelectTrigger id="status">
                             <SelectValue />
@@ -1767,7 +1943,6 @@ export default function ProductDataTable() {
                               isActive: value === "true",
                             })
                           }
-                          disabled={modalMode === "add"}
                         >
                           <SelectTrigger id="isActive">
                             <SelectValue />
@@ -1834,7 +2009,6 @@ export default function ProductDataTable() {
                             })
                           }
                           disabled={
-                            modalMode === "add" ||
                             formData.status !== "COMING_SOON"
                           }
                         />
@@ -1842,7 +2016,42 @@ export default function ProductDataTable() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border bg-background p-4">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">Live Preview</p>
+                      <Badge variant={formData.isActive ? "default" : "secondary"}>
+                        {formData.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-md border bg-muted/10 p-3">
+                        <p className="text-xs text-muted-foreground">Product</p>
+                        <p className="text-sm font-medium">
+                          {formData.name.trim() || "Untitled product"}
+                        </p>
+                      </div>
+                      <div className="rounded-md border bg-muted/10 p-3">
+                        <p className="text-xs text-muted-foreground">Category</p>
+                        <p className="text-sm font-medium">{selectedCategoryName}</p>
+                      </div>
+                      <div className="rounded-md border bg-muted/10 p-3">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p className="text-sm font-medium">
+                          {toStatusLabel(formData.status)}
+                        </p>
+                      </div>
+                      <div className="rounded-md border bg-muted/10 p-3">
+                        <p className="text-xs text-muted-foreground">Available Date</p>
+                        <p className="text-sm font-medium">
+                          {formData.status === "COMING_SOON"
+                            ? formatDateTime(formData.availableDate)
+                            : "Not required"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-md border bg-muted/10 p-3">
                       <p className="text-xs text-muted-foreground">Variants</p>
                       <p className="text-lg font-semibold">
@@ -1864,6 +2073,14 @@ export default function ProductDataTable() {
                       <p className="text-sm font-semibold">
                         {currencyFormatter.format(variantMetrics.minPrice)} -{" "}
                         {currencyFormatter.format(variantMetrics.maxPrice)}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/10 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Selected Images
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {totalSelectedImages}
                       </p>
                     </div>
                   </div>
@@ -2012,23 +2229,37 @@ export default function ProductDataTable() {
                               />
                             </div>
                             <div className="grid gap-2 sm:col-span-2">
-                              <Label htmlFor={`variant-images-${index}`}>
-                                Variant Images
-                              </Label>
+                              <div className="flex items-center justify-between gap-2">
+                                <Label htmlFor={`variant-images-${index}`}>
+                                  Variant Images
+                                </Label>
+                                {variant.images.length > 0 ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => clearVariantImages(index)}
+                                    className="h-7 px-2 text-xs"
+                                  >
+                                    Clear selected
+                                  </Button>
+                                ) : null}
+                              </div>
                               <Input
                                 id={`variant-images-${index}`}
                                 type="file"
                                 accept="image/*"
                                 multiple
                                 disabled={modalMode === "edit" && index >= 4}
-                                onChange={(e) =>
-                                  updateVariantImages(index, e.target.files)
-                                }
+                                onChange={(e) => {
+                                  updateVariantImages(index, e.target.files);
+                                  e.currentTarget.value = "";
+                                }}
                               />
                               <p className="text-xs text-muted-foreground">
                                 {modalMode === "edit" && index >= 4
                                   ? "Image upload is available for variants 1-4 only during update."
-                                  : "Upload new images for this variant."}
+                                  : "Upload images for this variant. You can preview and remove images before saving."}
                               </p>
                               {variant.images.length > 0 ? (
                                 <div className="space-y-2 rounded-md border bg-muted/10 p-3">
@@ -2040,15 +2271,30 @@ export default function ProductDataTable() {
                                       (preview, previewIndex) => (
                                         <div
                                           key={`${preview.name}-${previewIndex}`}
-                                          className="overflow-hidden rounded-md border bg-background"
+                                          className="relative overflow-hidden rounded-md border bg-background"
                                         >
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              removeVariantImage(index, previewIndex)
+                                            }
+                                            className="absolute right-1 top-1 z-10 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium text-destructive shadow-sm hover:bg-background"
+                                            aria-label={`Remove ${preview.name}`}
+                                          >
+                                            Remove
+                                          </button>
                                           <img
                                             src={preview.url}
                                             alt={preview.name}
                                             className="h-24 w-full object-cover"
                                           />
-                                          <p className="truncate px-2 py-1 text-[10px] text-muted-foreground">
+                                          <p className="truncate px-2 pt-1 text-[10px] text-muted-foreground">
                                             {preview.name}
+                                          </p>
+                                          <p className="px-2 pb-1 text-[10px] text-muted-foreground/80">
+                                            {formatFileSize(
+                                              variant.images[previewIndex]?.size ?? 0,
+                                            )}
                                           </p>
                                         </div>
                                       ),

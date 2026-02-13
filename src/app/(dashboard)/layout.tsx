@@ -1,7 +1,11 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+
 import { AppSidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,19 +14,25 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+
 import { Separator } from "@/components/ui/separator";
+
 import {
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import React, { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+
 import { generateBreadcrumbs } from "@/lib/breadcrumb-uttils";
-import { useAuth } from "@/context/AuthContext";
+import { getMe } from "@/lib/api/auth";
+
+// =============================
+// Main Layout (Sidebar + Header + Footer)
+// =============================
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const { state } = useSidebar();
+
   const sidebarWidth =
     state === "expanded" ? "var(--sidebar-width)" : "var(--sidebar-width-icon)";
 
@@ -42,9 +52,14 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// =============================
+// Header
+// =============================
+
 const Header = ({ sidebarWidth }: { sidebarWidth: string }) => {
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
+
   return (
     <header
       className="fixed top-0 right-0 z-20 h-16 border-b bg-background/80 backdrop-blur-xl flex items-center justify-between px-6 transition-all duration-300"
@@ -53,6 +68,7 @@ const Header = ({ sidebarWidth }: { sidebarWidth: string }) => {
       <div className="flex items-center gap-3">
         <SidebarTrigger className="-ml-1 h-8 w-8 hover:bg-muted/50 transition-colors" />
         <Separator orientation="vertical" className="h-6 bg-border/50" />
+
         <Breadcrumb className="hidden md:flex">
           <BreadcrumbList>
             {breadcrumbs.map((crumb, index) => (
@@ -71,6 +87,7 @@ const Header = ({ sidebarWidth }: { sidebarWidth: string }) => {
                     </BreadcrumbLink>
                   )}
                 </BreadcrumbItem>
+
                 {index < breadcrumbs.length - 1 && (
                   <BreadcrumbSeparator className="text-muted-foreground/50" />
                 )}
@@ -79,10 +96,15 @@ const Header = ({ sidebarWidth }: { sidebarWidth: string }) => {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
+
       <Topbar />
     </header>
   );
 };
+
+// =============================
+// Footer
+// =============================
 
 const Footer = () => {
   return (
@@ -90,6 +112,7 @@ const Footer = () => {
       <p className="text-sm text-muted-foreground">
         © 2026 Dashboard. All rights reserved.
       </p>
+
       <div className="flex items-center gap-4">
         <a
           href="#"
@@ -97,7 +120,9 @@ const Footer = () => {
         >
           Privacy Policy
         </a>
+
         <Separator orientation="vertical" className="h-4" />
+
         <a
           href="#"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -109,11 +134,66 @@ const Footer = () => {
   );
 };
 
+// =============================
+// Protected Dashboard Layout
+// =============================
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getMe()
+      .then((user) => {
+        if (!mounted) return;
+
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        const roleList =
+          user.roles && user.roles.length > 0
+            ? user.roles
+            : user.role
+              ? [user.role]
+              : [];
+        const hasAdminRole = roleList.some(
+          (role) => role.toUpperCase() === "ADMIN",
+        );
+
+        if (!hasAdminRole) {
+          router.replace("/unauthorized");
+          return;
+        } else {
+          setAuthorized(true);
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        router.replace("/login");
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  // Prevent dashboard flash
+  if (authorized === null) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Checking authorization...</p>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider
       style={

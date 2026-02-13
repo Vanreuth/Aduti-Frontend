@@ -50,11 +50,11 @@ export default function TopBar() {
               <span>Free shipping over $100</span>
             </div>
             <a 
-              href="mailto:support@mystore.com" 
+              href="mailto:support@aditistore.com" 
               className="flex items-center gap-2 hover:text-blue-900 transition-colors"
             >
               <Mail className="h-3 w-3 text-gray-400" />
-              <span>support@mystore.com</span>
+              <span>support@aditistore.com</span>
             </a>
           </div>
 
