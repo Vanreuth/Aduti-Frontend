@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api/client";
+import { loginApi } from "@/lib/api/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,13 +51,7 @@ export default function LoginPage() {
     try {
       setIsBusy(true);
       setError("");
-      await apiFetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      await loginApi({ username, password });
       await refreshUser();
     } catch (err: any) {
       setError(err.message || "Login failed");

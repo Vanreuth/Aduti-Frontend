@@ -10,10 +10,9 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const mounted = useMounted();
+  const mounted = useMounted(); // hook #1
 
-  // Prevent Radix (Sheet/Dialog/DropdownMenu) from SSR+hydration mismatch
-  if (!mounted) return null; // or return a skeleton header
+  if (!mounted) return null; // safe after all hooks
 
   return (
     <>
