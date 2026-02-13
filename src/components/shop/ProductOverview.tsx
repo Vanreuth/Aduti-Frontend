@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Product, Category } from "@/types/api"; // <-- use backend types
-import { useCart } from "@/context/CartContext";
-import { toast } from "sonner";
-import { useWishlist } from "@/context/WishlistContext";
+import { Category, Product } from "@/types/product";
 import { ProductGrid } from "./ProductGrid";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,10 +22,6 @@ export default function ProductOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
-  const { addItem } = useCart();
-  const { items: wishlistItems, add, remove } = useWishlist();
-
   const tabs: Tab[] = useMemo(() => {
     const activeCats = categories.filter((c) => c.isActive);
     return [{ id: "all", label: "All Products" }].concat(
@@ -46,13 +39,18 @@ export default function ProductOverview() {
 
       const [cats, productData] = await Promise.all([
         getAllCategories(),
-        getAllProducts({ page: 0, size: 20, sortBy: "id", direction: "DESC" }), // overview show 20
+        getAllProducts({ page: 0, size: 5, sortBy: "id", direction: "DESC" }),
       ]);
 
       setCategories(cats);
-      setProducts(productData.products ?? []);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load products");
+      setProducts(
+        (productData.products ?? []).filter(
+          (product) => product.status !== "COMING_SOON",
+        ),
+      );
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to load products";
+      setError(message);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -70,45 +68,6 @@ export default function ProductOverview() {
       (p) => (p.category?.slug ?? "").toLowerCase() === activeTab.toLowerCase(),
     );
   }, [activeTab, products]);
-
-  // Add to cart
-  const handleAddToCart = (product: Product) => {
-    const thumbnail =
-      product.variants?.[0]?.images?.[0]?.imageUrl ?? "/placeholder.png";
-
-    addItem({
-      id: String(product.id),
-      name: product.name,
-      price: product.price,
-      image: thumbnail, 
-    });
-
-    toast.success("Added to cart 🛒", {
-      description: "You can review it in your cart anytime.",
-    });
-  };
-
-  const toggleWishlist = (product: Product) => {
-    const exists = wishlistItems.some(
-      (i) => String(i.id) === String(product.id),
-    );
-
-    const thumbnail =
-      product.variants?.[0]?.images?.[0]?.imageUrl ?? "/placeholder.png";
-
-    if (exists) {
-      remove(String(product.id));
-      toast("Removed from wishlist 💔", { description: "No longer saved." });
-    } else {
-      add({
-        id: String(product.id),
-        name: product.name,
-        price: product.price,
-        image: thumbnail,
-      });
-      toast("Added to wishlist ❤️", { description: "Saved for later." });
-    }
-  };
 
   // Loading UI
   if (loading) {
@@ -236,7 +195,7 @@ export default function ProductOverview() {
                 >
                   <ProductGrid
                     products={filteredProducts}
-                    gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    gridClassName="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3 sm:gap-4"
                     animated
                   />
                 </motion.div>

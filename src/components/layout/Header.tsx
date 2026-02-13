@@ -64,13 +64,13 @@ export default function Navbar() {
 
   const displayName = user?.username || "Guest";
   const email = user?.email || "";
-  const avatarUrl = user?.photo || "/default-avatar.png";
+  const avatarUrl = user?.photo || undefined;
 
   const initials =
     displayName
       .split(" ")
       .filter(Boolean)
-      .map((p) => p[0])
+      .map((p: string) => p[0])
       .join("")
       .slice(0, 2) || "G";
 
@@ -163,7 +163,9 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={avatarUrl} alt={displayName} />
+                      {user?.photo && (
+                        <AvatarImage src={user.photo} alt={displayName} />
+                      )}
                       <AvatarFallback className="bg-zinc-900 text-white text-xs font-semibold">
                         {initials}
                       </AvatarFallback>

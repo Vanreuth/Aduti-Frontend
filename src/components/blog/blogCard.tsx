@@ -2,20 +2,28 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
+export type BlogCardData = {
+  image: string
+  date: string
+  title: string
+  description: string
+  comments?: string
+  author?: string
+  href?: string
+}
+
 interface BlogCardProps {
-  blog: {
-    image: string
-    date: string
-    title: string
-    description: string
-    comments: string
-  }
+  blog: BlogCardData
 }
 
 export default function BlogCard({ blog }: BlogCardProps) {
+  const href = blog.href || "/shop"
+  const author = blog.author || "Admin"
+  const comments = blog.comments || "0 Comments"
+
   return (
     <article className="space-y-6">
-      <Link href="/blog/1" className="block overflow-hidden rounded-xl">
+      <Link href={href} className="block overflow-hidden rounded-xl">
         <Image
           src={blog.image}
           alt={blog.title}
@@ -26,17 +34,18 @@ export default function BlogCard({ blog }: BlogCardProps) {
       </Link>
 
       <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">{blog.date}</p>
         <h2 className="text-2xl font-semibold hover:text-primary">
-          <Link href="/blog/1">{blog.title}</Link>
+          <Link href={href}>{blog.title}</Link>
         </h2>
 
         <p className="text-muted-foreground">{blog.description}</p>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>By Admin • {blog.comments}</span>
+          <span>By {author} • {comments}</span>
 
           <Link
-            href="/blog/1"
+            href={href}
             className="flex items-center gap-2 hover:text-primary"
           >
             Continue Reading <ArrowRight size={16} />

@@ -41,8 +41,7 @@ import {
   TableFilters,
   type TableFilterConfig,
 } from "@/components/dashboard/table-filters";
-import { useAuth } from "@/context/AuthContext";
-import type { Category } from "@/types/api";
+import type { Category } from "@/types/product";
 import {
   createCategory,
   deleteCategory,
@@ -78,7 +77,6 @@ function formatDate(value?: string | null) {
 }
 
 export default function CategoryTable() {
-  const { accessToken } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,10 +146,6 @@ export default function CategoryTable() {
   }, [filteredCategories, currentPage, pageSize]);
 
   const loadCategories = useCallback(async () => {
-    if (!accessToken) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -162,7 +156,7 @@ export default function CategoryTable() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken]);
+  }, []);
 
   useEffect(() => {
     void loadCategories();
@@ -219,12 +213,12 @@ export default function CategoryTable() {
     try {
       setIsSubmitting(true);
       if (modalMode === "add") {
-        await createCategory(payload, accessToken);
+        await createCategory(payload);
         toast.success("Category created", {
           description: `${payload.name} has been added successfully.`,
         });
       } else if (selectedCategory) {
-        await updateCategory(selectedCategory.id, payload, accessToken);
+        await updateCategory(selectedCategory.id, payload);
         toast.success("Category updated", {
           description: `${payload.name} has been updated successfully.`,
         });
@@ -246,7 +240,7 @@ export default function CategoryTable() {
     if (!selectedCategory) return;
     try {
       setIsDeleting(true);
-      await deleteCategory(selectedCategory.id, accessToken);
+      await deleteCategory(selectedCategory.id);
       setIsDeleteModalOpen(false);
       await loadCategories();
       toast.success("Category deleted", {

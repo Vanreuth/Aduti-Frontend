@@ -1,76 +1,50 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getMe, loginApi, type MeResponse } from "@/lib/api/auth";
+import { getMe, logoutApi } from "@/lib/api/auth";
+import { useRouter } from "next/navigation";
 
 type AuthContextType = {
-  accessToken: string | null;
-  user: MeResponse | null;
+  user: any | null;
   loading: boolean;
-  setAccessToken: (token: string | null) => void;
-  login: (data: { email: string; password: string }) => Promise<void>;
-  logout: () => void;
+  refreshUser: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [user, setUser] = useState<MeResponse | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load token on first mount
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      setAccessToken(token);
-    }
-    setLoading(false);
-  }, []);
-
-  // Fetch user when token changes
-  useEffect(() => {
-    if (!accessToken) {
+  const refreshUser = async () => {
+    try {
+      setLoading(true);
+      const me = await getMe();
+      setUser(me);
+    } catch {
       setUser(null);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(true);
-    getMe(accessToken)
-      .then(setUser)
-      .catch(() => {
-        localStorage.removeItem("accessToken");
-        setAccessToken(null);
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
-  }, [accessToken]);
-
-  const login = async (data: { email: string; password: string }) => {
-    const res = await loginApi(data as any);
-
-    localStorage.setItem("accessToken", res.token);
-    setAccessToken(res.token);
-    setUser(res.user);
   };
 
-  const logout = () => {
-    localStorage.removeItem("accessToken");
-    setAccessToken(null);
-    setUser(null);
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
+  const logout = async () => {
+    try {
+      await logoutApi();
+    } finally {
+      setUser(null);
+      router.push("/");
+    }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        accessToken,
-        user,
-        loading,
-        login,
-        logout,
-        setAccessToken,
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -78,8 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }

@@ -114,24 +114,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const { accessToken, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loading && !accessToken) {
-      router.replace("/login");
-    }
-  }, [loading, accessToken, router]);
-
-  // Prevent hydration + auth flash
-  if (!mounted || loading) return null;
-  if (!accessToken) return null;
-
   return (
     <SidebarProvider
       style={

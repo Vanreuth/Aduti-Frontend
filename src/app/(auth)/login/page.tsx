@@ -19,62 +19,50 @@ import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api/client";
 
-type LoginResponse = {
-  access_token: string;
-  refresh_token?: string;
-  role?: string;
-  tokenType?: string;
-};
-
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
-  const { user, setAccessToken, loading: authLoading } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  const [error, setError] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // If already logged in, go to redirect destination
-  useEffect(() => {
-    if (!authLoading && user) router.replace(redirectTo);
-  }, [authLoading, user, router, redirectTo]);
-
-  const isBusy = authLoading || submitting;
+  const [error, setError] = useState("");
+  const [isBusy, setIsBusy] = useState(false);
 
   const canSubmit = useMemo(() => {
-    return username.trim().length > 0 && password.length > 0 && !isBusy;
+    return username.trim() !== "" && password.trim() !== "" && !isBusy;
   }, [username, password, isBusy]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (user.roles?.includes("ADMIN")) {
+      router.push("/dashboard");
+    } else {
+      router.push("/shop");
+    }
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
 
-    setError("");
-    setSubmitting(true);
-
     try {
-      const data = await apiFetch<LoginResponse>("/api/auth/login", {
+      setIsBusy(true);
+      setError("");
+      await apiFetch("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ username: username.trim(), password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
       });
-
-      localStorage.setItem("accessToken", data.access_token);
-      setAccessToken(data.access_token);
-      router.replace("/shop");
+      await refreshUser();
     } catch (err: any) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Invalid credentials. Please try again.";
-      setError(msg);
-      console.error(err);
+      setError(err.message || "Login failed");
     } finally {
-      setSubmitting(false);
+      setIsBusy(false);
     }
   };
 

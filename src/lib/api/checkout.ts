@@ -51,81 +51,67 @@ export type VerifyPaymentResponse = {
   paidAt: string | null;
 };
 
+function requireData<T>(data: T | null, message: string): T {
+  if (data === null) {
+    throw new Error(message);
+  }
+  return data;
+}
+
 /**
  * Step 1: Create an order from the cart
  * POST /api/orders/checkout
  */
-export function createCheckout(
-  payload: CheckoutRequest,
-  accessToken?: string | null,
-) {
-  return apiFetch<CheckoutResponse>(
-    "/api/orders/checkout",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    },
-    accessToken,
-  );
+export function createCheckout(payload: CheckoutRequest) {
+  return apiFetch<CheckoutResponse>("/api/orders/checkout", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }).then((data) => requireData(data, "Checkout response is empty"));
 }
 
 /**
  * Step 2: Request KHQR code for the order
  * POST /api/orders/{orderId}/payment/khqr
  */
-export function generateKHQR(orderId: string, accessToken?: string | null) {
+export function generateKHQR(orderId: string) {
   return apiFetch<KHQRResponse>(
     `/api/orders/${encodeURIComponent(orderId)}/payment/khqr`,
     {
       method: "POST",
       body: JSON.stringify({ method: "KHQR" }),
     },
-    accessToken,
-  );
+  ).then((data) => requireData(data, "KHQR response is empty"));
 }
 
 /**
  * Process cash on delivery payment
  * POST /api/orders/{orderId}/payment/cash
  */
-export function processCashPayment(
-  orderId: string,
-  accessToken?: string | null,
-) {
+export function processCashPayment(orderId: string) {
   return apiFetch<CashPaymentResponse>(
     `/api/orders/${encodeURIComponent(orderId)}/payment/cash`,
-    {
-      method: "POST",
-    },
-    accessToken,
-  );
+    { method: "POST" },
+  ).then((data) => requireData(data, "Cash payment response is empty"));
 }
 
 /**
  * Step 3: Poll payment verification status
  * GET /api/orders/{orderId}/payment/{paymentId}/verify
  */
-export function verifyPayment(
-  orderId: string,
-  paymentId: string,
-  accessToken?: string | null,
-) {
+export function verifyPayment(orderId: string, paymentId: string) {
   return apiFetch<VerifyPaymentResponse>(
     `/api/orders/${encodeURIComponent(orderId)}/payment/${encodeURIComponent(paymentId)}/verify`,
     { method: "GET" },
-    accessToken,
-  );
+  ).then((data) => requireData(data, "Verify payment response is empty"));
 }
 
 /**
  * Get user's orders
  * GET /api/orders
  */
-export function getOrders(accessToken?: string | null) {
-  return apiFetch<{ orders: unknown[] }>(
-    "/api/orders",
-    { method: "GET" },
-    accessToken,
+export function getOrders() {
+  return apiFetch<{ orders: unknown[] }>("/api/orders", { method: "GET" }).then(
+    (data) => requireData(data, "Orders response is empty"),
   );
 }
 
@@ -133,10 +119,9 @@ export function getOrders(accessToken?: string | null) {
  * Get single order details
  * GET /api/orders/{orderId}
  */
-export function getOrder(orderId: string, accessToken?: string | null) {
+export function getOrder(orderId: string) {
   return apiFetch<{ order: unknown }>(
     `/api/orders/${encodeURIComponent(orderId)}`,
     { method: "GET" },
-    accessToken,
-  );
+  ).then((data) => requireData(data, "Order response is empty"));
 }

@@ -11,7 +11,8 @@ import {
   LogOut,
   ChevronDown,
   PackageSearch,
-  ShoppingBasket
+  ShoppingBasket,
+  ClipboardList,
 } from "lucide-react";
 
 import {
@@ -79,17 +80,20 @@ const sidebarGroups: { title: string; items: SidebarItem[] }[] = [
         badge: "5",
         badgeVariant: "destructive",
       },
-       {
+      {
         title: "Products",
         href: "/dashboard/products",
         icon: ShoppingBasket,
         badge: "12",
         badgeVariant: "secondary",
       },
+      {
+        title: "Orders",
+        href: "/dashboard/orders",
+        icon: ClipboardList,
+      },
     ],
-
   },
-  
 ];
 
 interface SidebarProps {

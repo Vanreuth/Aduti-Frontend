@@ -29,13 +29,13 @@ export function FiltersPanel({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 shrink-0">
-        <div className="sticky top-24 bg-white rounded-2xl p-6 shadow-sm border border-zinc-100">
-          <h2 className="font-bold text-lg text-zinc-900 mb-6 flex items-center gap-2">
-            <Filter className="w-5 h-5" />
+      <aside className="hidden lg:block w-[250px] shrink-0">
+        <div className="sticky top-6 border border-zinc-200 bg-white p-5">
+          <h2 className="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-zinc-900">
+            <Filter className="h-4 w-4" />
             {title}
             {showCount ? (
-              <Badge variant="secondary" className="rounded-full px-2 py-0 text-xs">
+              <Badge variant="secondary" className="rounded-full px-2 py-0 text-[10px]">
                 {activeCount}
               </Badge>
             ) : null}
@@ -55,7 +55,7 @@ export function FiltersPanel({
           >
             <Button
               variant="outline"
-              className="shadow-lg rounded-full px-6 bg-white/90 backdrop-blur"
+              className="rounded-full border-zinc-300 bg-white px-6 shadow-lg"
             >
               <SlidersHorizontal className="w-4 h-4 mr-2" />
               {title}
@@ -84,7 +84,7 @@ export function FiltersPanel({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6">{children}</div>
+          <div className="mt-6 pb-8">{children}</div>
         </SheetContent>
       </Sheet>
     </>

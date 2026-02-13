@@ -1,5 +1,5 @@
 export interface PriceRange {
-  label: string;
-  min: number;
-  max: number;
+  readonly label: string;
+  readonly min: number;
+  readonly max: number;
 }
