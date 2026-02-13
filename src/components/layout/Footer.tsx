@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import {
+  ArrowRight,
   Mail,
   MapPin,
   Phone,
@@ -8,11 +9,56 @@ import {
   Instagram,
   Linkedin,
   Twitter,
+  ShieldCheck,
+  Truck,
+  RefreshCcw,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
 const Footer = () => {
+  const quickShopLinks = [
+    { label: "New Arrivals", href: "/shop?filter=new" },
+    { label: "Best Sellers", href: "/shop?filter=best" },
+    { label: "Top Rated", href: "/shop?filter=featured" },
+    { label: "Price: Low to High", href: "/shop?filter=price-low" },
+    { label: "Price: High to Low", href: "/shop?filter=price-high" },
+    { label: "View All Products", href: "/shop" },
+  ];
+
+  const supportLinks = [
+    { label: "Track Order", href: "/order" },
+    { label: "Shipping Info", href: "/feature" },
+    { label: "Returns & Refunds", href: "/feature" },
+    { label: "Contact Support", href: "/contact" },
+    { label: "FAQ", href: "/help" },
+  ];
+
+  const socialLinks = [
+    { icon: Facebook, label: "Facebook", href: "#" },
+    { icon: Twitter, label: "Twitter", href: "#" },
+    { icon: Instagram, label: "Instagram", href: "#" },
+    { icon: Linkedin, label: "LinkedIn", href: "#" },
+  ];
+
+  const trustItems = [
+    {
+      icon: Truck,
+      title: "Fast Delivery",
+      subtitle: "2-5 business days",
+    },
+    {
+      icon: RefreshCcw,
+      title: "Easy Return",
+      subtitle: "7-day return policy",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Secure Checkout",
+      subtitle: "Protected payment",
+    },
+  ];
+
   const linkClass =
     "text-sm text-muted-foreground hover:text-foreground transition-colors";
   const sectionTitle =
@@ -20,15 +66,37 @@ const Footer = () => {
 
   return (
     <footer className="border-t bg-background">
-      <div className="container-app py-6">
-        {/* Top */}
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5 ">
+      <div className="container-app py-8">
+        <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-white sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-400">
+                Curated Collection
+              </p>
+              <h3 className="mt-1 text-xl font-semibold sm:text-2xl">
+                Find your next favorite product faster
+              </h3>
+              <p className="mt-1 text-sm text-zinc-300">
+                Explore trending pieces, best sellers, and smart price filters.
+              </p>
+            </div>
+            <Link
+              href="/shop?filter=best"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100"
+            >
+              Shop Best Sellers
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12">
           {/* Brand */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-4">
             <Link href="/" className="inline-flex items-center gap-3">
-              <div className="relative h-14 w-14 sm:h-16 sm:w-16">
+              <div className="relative h-20 w-20 sm:h-25 sm:w-25">
                 <Image
-                  src="/Shop_Logo.png"
+                  src="/aditilogo.png"
                   alt="Aduti Logo"
                   fill
                   className="object-contain"
@@ -57,7 +125,7 @@ const Footer = () => {
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border bg-card">
                   <Phone className="h-4 w-4" />
                 </span>
-                +1 (234) 567-890
+                +855 883386255
               </a>
 
               <a
@@ -67,7 +135,7 @@ const Footer = () => {
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border bg-card">
                   <Mail className="h-4 w-4" />
                 </span>
-                support@coza.com
+                support@aditistore.com
               </a>
 
               <div className="flex items-start gap-3 text-sm text-muted-foreground">
@@ -75,82 +143,75 @@ const Footer = () => {
                   <MapPin className="h-4 w-4" />
                 </span>
                 <span>
-                  123 Fashion Street
+                  19F St. 214, Sangkat Boeung Kak 1, Khan Toul Kork
                   <br />
-                  New York, NY 10001
+                  Phnom Penh, Cambodia
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Links */}
-          <div>
-            <h3 className={sectionTitle}>Shop</h3>
+          <div className="lg:col-span-3">
+            <h3 className={sectionTitle}>Shop Products</h3>
             <ul className="mt-4 space-y-3">
-              <li>
-                <Link href="/shop?filter=new" className={linkClass}>
-                  New Arrivals
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?filter=best" className={linkClass}>
-                  Best Sellers
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?filter=sale" className={linkClass}>
-                  Sale
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop" className={linkClass}>
-                  Collections
-                </Link>
-              </li>
+              {quickShopLinks.map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className={linkClass}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div>
-            <h3 className={sectionTitle}>Company</h3>
+          <div className="lg:col-span-2">
+            <h3 className={sectionTitle}>Support</h3>
             <ul className="mt-4 space-y-3">
-              <li>
-                <Link href="/about" className={linkClass}>
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className={linkClass}>
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className={linkClass}>
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/press" className={linkClass}>
-                  Press
-                </Link>
-              </li>
+              {supportLinks.map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className={linkClass}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Newsletter */}
-          <div>
-            <h3 className={sectionTitle}>Newsletter</h3>
+          <div className="lg:col-span-3">
+            <h3 className={sectionTitle}>Discover More</h3>
             <p className="mt-4 text-sm text-muted-foreground">
-              Get special offers and new product updates.
+              Browse by popular searches to jump straight to what you want.
             </p>
 
-            {/* Social */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/shop?search=jacket"
+                className="rounded-full border border-zinc-200 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:border-zinc-300 hover:text-foreground"
+              >
+                Jackets
+              </Link>
+              <Link
+                href="/shop?search=watch"
+                className="rounded-full border border-zinc-200 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:border-zinc-300 hover:text-foreground"
+              >
+                Watches
+              </Link>
+              <Link
+                href="/shop?search=bag"
+                className="rounded-full border border-zinc-200 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:border-zinc-300 hover:text-foreground"
+              >
+                Bags
+              </Link>
+              <Link
+                href="/shop?search=blazer"
+                className="rounded-full border border-zinc-200 bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:border-zinc-300 hover:text-foreground"
+              >
+                Blazers
+              </Link>
+            </div>
+
             <div className="mt-6 flex items-center gap-2">
-              {[
-                { icon: Facebook, label: "Facebook", href: "#" },
-                { icon: Twitter, label: "Twitter", href: "#" },
-                { icon: Instagram, label: "Instagram", href: "#" },
-                { icon: Linkedin, label: "LinkedIn", href: "#" },
-              ].map(({ icon: Icon, label, href }) => (
+              {socialLinks.map(({ icon: Icon, label, href }) => (
                 <a
                   key={label}
                   href={href}
@@ -171,7 +232,7 @@ const Footer = () => {
             © {new Date().getFullYear()} Aduti Store. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex flex-wrap items-center gap-4 text-xs">
             <Link
               href="/privacy"
               className="text-muted-foreground hover:text-foreground transition"
@@ -184,6 +245,13 @@ const Footer = () => {
               className="text-muted-foreground hover:text-foreground transition"
             >
               Terms of Service
+            </Link>
+            <span className="text-muted-foreground/40">•</span>
+            <Link
+              href="/feature"
+              className="text-muted-foreground hover:text-foreground transition"
+            >
+              Shipping & Returns
             </Link>
           </div>
         </div>
