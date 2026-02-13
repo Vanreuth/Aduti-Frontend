@@ -44,6 +44,7 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  thumbnailImage?: string | null;
   brand: string;
   isActive: boolean;
   isFeatured?: boolean;
@@ -56,6 +57,53 @@ export type Product = {
   createdByPhoto?: string | null;
   category: Category;
   variants: ProductVariant[];
+};
+
+export type DashboardProduct = {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  thumbnailImage: string | null;
+  brand: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  featuredOrder: number | null;
+  status: ProductLifecycleStatus | (string & {});
+  availableDate: string | null;
+  salesCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  createdById: number | null;
+  createdByEmail: string | null;
+  createdByUsername: string | null;
+  createdByPhoto: string | null;
+  category: Category;
+  variants: ProductVariant[];
+};
+
+export type ProductDashboardData = {
+  productStats: {
+    totalProducts: number;
+    activeProducts: number;
+    inactiveProducts: number;
+    totalCategories: number;
+  };
+  priceStats: {
+    minPrice: number;
+    maxPrice: number;
+    avgPrice: number;
+    totalValue: number;
+  };
+  categoryStats: Array<{
+    categoryName: string;
+    categorySlug: string;
+    productCount: number;
+    totalValue: number;
+    avgPrice: number;
+  }>;
+  recentProducts: DashboardProduct[];
+  topProducts: DashboardProduct[];
 };
 
 export type CreateProductData = {

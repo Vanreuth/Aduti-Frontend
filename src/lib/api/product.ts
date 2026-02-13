@@ -3,6 +3,7 @@ import { api, apiFetch } from "@/lib/api/client";
 import type {
   GetAllProductsParams,
   Product,
+  ProductDashboardData,
   ProductCreatePayload,
   ProductDetailData,
   ProductListData,
@@ -145,6 +146,18 @@ export async function getComingSoonProducts(limit?: number) {
   return limit === undefined ? products : products.slice(0, Math.max(0, limit));
 }
 
+export async function getProductDashboardAnalytics() {
+  const json = await apiFetch<ApiResponse<ProductDashboardData>>(
+    "/api/products/dashboard",
+  );
+
+  if (!json) {
+    throw new Error("Failed to load dashboard analytics");
+  }
+
+  return json.data;
+}
+
 type ProductDetailResponse = Product | ProductDetailData;
 
 export async function getProductById(id: string | number) {
@@ -172,7 +185,6 @@ export async function getProductDetail(id: string | number) {
   return { product: json.data as Product, relatedProducts: [] };
 }
 
-/** ✅ Cookie auth: no accessToken param */
 export async function createProduct(
   payload: ProductCreatePayload,
   variantImages?: VariantFiles,
@@ -188,7 +200,6 @@ export async function createProduct(
   });
 }
 
-/** ✅ Cookie auth: no accessToken param */
 export async function updateProduct(
   id: number,
   payload: ProductUpdatePayload,
@@ -241,3 +252,4 @@ export async function deleteProduct(id: number) {
     method: "DELETE",
   });
 }
+
