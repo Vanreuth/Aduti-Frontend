@@ -165,6 +165,12 @@ export default function ProductDetailPage() {
   }, [variants, selectedColor, selectedSize]);
 
   const selectedVariantImage = selectedVariant?.images?.[0]?.imageUrl ?? null;
+  const selectedStock = selectedVariant?.stockQuantity ?? 0;
+  const totalStock = variants.reduce((sum, variant) => sum + (variant.stockQuantity ?? 0), 0);
+  const maxSelectableQty = Math.max(
+    1,
+    selectedVariant ? selectedStock : totalStock,
+  );
 
   useEffect(() => {
     if (!selectedVariantImage) return;
@@ -173,6 +179,16 @@ export default function ProductDetailPage() {
       setSelectedImageIndex(matchedIndex);
     }
   }, [galleryImages, selectedVariantImage]);
+
+  useEffect(() => {
+    setSelectedImageIndex((current) =>
+      Math.min(current, Math.max(0, galleryImages.length - 1)),
+    );
+  }, [galleryImages.length]);
+
+  useEffect(() => {
+    setQuantity((current) => Math.min(current, maxSelectableQty));
+  }, [maxSelectableQty]);
 
   if (loading) {
     return (
@@ -213,7 +229,7 @@ export default function ProductDetailPage() {
     notFound();
   }
 
-  const primaryImage = selectedVariantImage ?? galleryImages[selectedImageIndex] ?? galleryImages[0];
+  const primaryImage = galleryImages[selectedImageIndex] ?? selectedVariantImage ?? galleryImages[0];
   const variantPrices = variants.length
     ? variants.map((v) => v.finalPrice ?? product.price)
     : [product.price];
@@ -221,8 +237,6 @@ export default function ProductDetailPage() {
   const maxPrice = Math.max(...variantPrices);
   const showPriceRange = minPrice !== maxPrice;
   const selectedPrice = selectedVariant?.finalPrice ?? minPrice;
-  const selectedStock = selectedVariant?.stockQuantity ?? 0;
-  const totalStock = variants.reduce((sum, variant) => sum + (variant.stockQuantity ?? 0), 0);
   const isComingSoon = product.status === "COMING_SOON";
   const isInStock = variants.length
     ? variants.some(
@@ -250,6 +264,16 @@ export default function ProductDetailPage() {
       toast.error("Unavailable", {
         description: "The selected variant is currently out of stock.",
       });
+      return;
+    }
+
+    if (quantity > maxSelectableQty) {
+      toast.error("Quantity not available", {
+        description: `Only ${maxSelectableQty} item${
+          maxSelectableQty > 1 ? "s are" : " is"
+        } available right now.`,
+      });
+      setQuantity(maxSelectableQty);
       return;
     }
 
@@ -286,9 +310,18 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <section className="mx-auto max-w-7xl space-y-10 px-4 py-6 sm:space-y-12 sm:py-10">
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500 sm:mb-6">
+    <div className="relative min-h-screen bg-zinc-50">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[26rem] bg-[radial-gradient(circle_at_top,rgba(24,24,27,0.08),transparent_62%)]" />
+      <section className="relative mx-auto max-w-7xl space-y-10 px-4 py-6 pb-28 sm:space-y-12 sm:py-10 lg:pb-10">
+        <div className="mb-4 flex items-center gap-3 text-xs text-zinc-500 sm:mb-6">
+          <Link
+            href="/shop"
+            className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1.5 text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Back
+          </Link>
+          <span className="text-zinc-300">|</span>
           <Link href="/shop" className="hover:text-zinc-800">
             Shop
           </Link>
@@ -298,19 +331,56 @@ export default function ProductDetailPage() {
 
         <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-10">
           {/* Image */}
-          <div className="space-y-3 sm:space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 sm:aspect-[4/3] sm:rounded-3xl">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row">
+            {galleryImages.length > 1 ? (
+              <div className="order-2 flex gap-2 overflow-x-auto pb-1 lg:order-1 lg:max-h-[34rem] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0">
+                {galleryImages.map((img, idx) => (
+                  <button
+                    key={`${img}-${idx}`}
+                    onClick={() => setSelectedImageIndex(idx)}
+                    aria-pressed={selectedImageIndex === idx}
+                    className={cn(
+                      "relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all sm:h-16 sm:w-16 sm:rounded-2xl",
+                      selectedImageIndex === idx
+                        ? "border-zinc-900 shadow-md"
+                        : "border-transparent hover:border-zinc-300",
+                    )}
+                  >
+                    <Image src={img} alt="" fill className="object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="order-1 relative aspect-square flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-sm sm:aspect-[5/4] sm:rounded-3xl">
               <Image
-                src={galleryImages[selectedImageIndex]}
+                src={primaryImage}
                 alt={product.name}
                 fill
                 priority
-                className="object-cover"
+                className="object-cover transition-transform duration-500 hover:scale-[1.04]"
               />
 
               <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-zinc-700 shadow-sm sm:left-4 sm:top-4 sm:px-3 sm:text-xs">
                 {selectedImageIndex + 1} / {galleryImages.length}
               </div>
+
+              <Badge
+                className={cn(
+                  "absolute bottom-3 left-3 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide sm:bottom-4 sm:left-4",
+                  isComingSoon
+                    ? "border-sky-600 bg-sky-600 text-white"
+                    : canAddToCart
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-zinc-900 bg-zinc-900 text-white",
+                )}
+              >
+                {isComingSoon
+                  ? "Coming soon"
+                  : canAddToCart
+                    ? "Ready to ship"
+                    : "Sold out"}
+              </Badge>
 
               {galleryImages.length > 1 ? (
                 <>
@@ -339,7 +409,6 @@ export default function ProductDetailPage() {
                 </>
               ) : null}
 
-              {/* Wishlist */}
               <button
                 onClick={toggleWishlist}
                 className="absolute right-3 top-3 rounded-full bg-white p-1.5 shadow sm:right-4 sm:top-4 sm:p-2"
@@ -353,26 +422,6 @@ export default function ProductDetailPage() {
                 />
               </button>
             </div>
-
-            {galleryImages.length > 1 ? (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {galleryImages.map((img, idx) => (
-                  <button
-                    key={`${img}-${idx}`}
-                    onClick={() => setSelectedImageIndex(idx)}
-                    aria-pressed={selectedImageIndex === idx}
-                    className={cn(
-                      "relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all sm:h-16 sm:w-16 sm:rounded-2xl",
-                      selectedImageIndex === idx
-                        ? "border-zinc-900 shadow-md"
-                        : "border-transparent hover:border-zinc-300",
-                    )}
-                  >
-                    <Image src={img} alt="" fill className="object-cover" />
-                  </button>
-                ))}
-              </div>
-            ) : null}
           </div>
 
           {/* Content */}
@@ -438,6 +487,21 @@ export default function ProductDetailPage() {
                 {product.description ||
                   "This is a high-quality product designed for comfort and style."}
               </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                <div className="rounded-xl bg-zinc-100 px-3 py-2 text-zinc-600">
+                  <span className="font-semibold text-zinc-900">Item ID</span> #{product.id}
+                </div>
+                <div className="rounded-xl bg-zinc-100 px-3 py-2 text-zinc-600">
+                  <span className="font-semibold text-zinc-900">Category</span>{" "}
+                  {product.category?.name ?? "General"}
+                </div>
+                <div className="rounded-xl bg-zinc-100 px-3 py-2 text-zinc-600 sm:col-span-1 col-span-2">
+                  <span className="font-semibold text-zinc-900">Variant</span>{" "}
+                  {selectedSize ? `Size ${selectedSize}` : "Any"} /{" "}
+                  {selectedColor ?? "Any color"}
+                </div>
+              </div>
 
               <Separator className="my-5" />
 
@@ -508,7 +572,8 @@ export default function ProductDetailPage() {
                   <div className="inline-flex items-center rounded-full border border-zinc-200">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="flex h-9 w-9 items-center justify-center rounded-l-full text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+                      disabled={quantity <= 1}
+                      className="flex h-9 w-9 items-center justify-center rounded-l-full text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
@@ -516,8 +581,11 @@ export default function ProductDetailPage() {
                       {quantity}
                     </span>
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="flex h-9 w-9 items-center justify-center rounded-r-full text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+                      onClick={() =>
+                        setQuantity((current) => Math.min(maxSelectableQty, current + 1))
+                      }
+                      disabled={!canAddToCart || quantity >= maxSelectableQty}
+                      className="flex h-9 w-9 items-center justify-center rounded-r-full text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -525,7 +593,7 @@ export default function ProductDetailPage() {
                 </div>
                 <p className="text-sm text-zinc-500">
                   {selectedVariant
-                    ? `${selectedStock} left in stock`
+                    ? `${selectedStock} left for selected variant`
                     : `${totalStock} total available`}
                 </p>
               </div>
@@ -615,6 +683,25 @@ export default function ProductDetailPage() {
           </div>
         ) : null}
       </section>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-zinc-900">
+              {product.name}
+            </p>
+            <p className="text-xs text-zinc-500">${selectedPrice.toFixed(2)}</p>
+          </div>
+          <Button
+            className="h-10 rounded-full bg-zinc-900 px-4 font-semibold text-white hover:bg-zinc-800"
+            onClick={handleAddToCart}
+            disabled={!canAddToCart}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            {isComingSoon ? "Soon" : canAddToCart ? "Add" : "Unavailable"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
