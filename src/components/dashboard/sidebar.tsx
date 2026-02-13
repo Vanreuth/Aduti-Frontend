@@ -13,6 +13,9 @@ import {
   PackageSearch,
   ShoppingBasket,
   ClipboardList,
+  HelpCircle,
+  MessageSquare,
+  Shield,
 } from "lucide-react";
 
 import {
@@ -43,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/AuthContext";
 
 type SidebarChild = { title: string; href: string };
 type SidebarItem = {
@@ -70,27 +74,40 @@ const sidebarGroups: { title: string; items: SidebarItem[] }[] = [
         title: "Users",
         href: "/dashboard/users",
         icon: Users,
-        badge: "12",
-        badgeVariant: "secondary",
       },
       {
         title: "Category",
         href: "/dashboard/categories",
         icon: PackageSearch,
-        badge: "5",
-        badgeVariant: "destructive",
       },
       {
         title: "Products",
         href: "/dashboard/products",
         icon: ShoppingBasket,
-        badge: "12",
-        badgeVariant: "secondary",
       },
       {
         title: "Orders",
         href: "/dashboard/orders",
         icon: ClipboardList,
+      },
+    ],
+    
+  },
+  {
+    title: "Others",
+    items: [
+      {
+        title: "Messages",
+        href: "/dashboard/messages",
+        icon: MessageSquare,
+        badge: "5",
+        badgeVariant: "secondary" as const,
+      },
+      {
+        title: "Help",
+        href: "/dashboard/help",
+        icon: HelpCircle,
+        badge: null,
       },
     ],
   },
@@ -100,9 +117,32 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
+function getInitials(name: string) {
+  const n = name.trim();
+  if (!n) return "U";
+  return n
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join("");
+}
+
 export function AppSidebar({ onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const { user, logout } = useAuth();
+
+  const displayName =
+    typeof user?.username === "string" && user.username.trim()
+      ? user.username
+      : "Guest";
+  const email =
+    typeof user?.email === "string" && user.email.trim()
+      ? user.email
+      : "guest@example.com";
+  const avatarUrl = typeof user?.photo === "string" ? user.photo : undefined;
+  const initials = getInitials(displayName);
 
   const handleLinkClick = () => {
     if (onMobileClose) onMobileClose();
@@ -254,14 +294,12 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src="/avatar.png" alt="User" />
-                    <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">John Doe</span>
-                    <span className="truncate text-xs">
-                      john.doe@example.com
-                    </span>
+                    <span className="truncate font-semibold">{displayName}</span>
+                    <span className="truncate text-xs">{email}</span>
                   </div>
                   <ChevronDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -276,14 +314,12 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src="/avatar.png" alt="User" />
-                      <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                      <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">John Doe</span>
-                      <span className="truncate text-xs">
-                        john.doe@example.com
-                      </span>
+                      <span className="truncate font-semibold">{displayName}</span>
+                      <span className="truncate text-xs">{email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
@@ -303,7 +339,7 @@ export function AppSidebar({ onMobileClose }: SidebarProps) {
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

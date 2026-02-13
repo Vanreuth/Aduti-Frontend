@@ -81,6 +81,27 @@ export type GetUsersParams = {
   search?: string;
 };
 
+export type AdminCreateUserPayload = {
+  username: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  address?: string;
+  bio?: string;
+  roleIds: number[];
+};
+
+export type AdminUpdateUserPayload = {
+  username: string;
+  email: string;
+  password?: string;
+  phoneNumber?: string;
+  address?: string;
+  bio?: string;
+  enable: boolean;
+  roleIds: number[];
+};
+
 function requireResponse<T>(
   response: ApiResponse<T> | null,
   message: string,
@@ -113,11 +134,74 @@ export async function getUsers(params: GetUsersParams = {}) {
 /** ✅ Cookie auth (no accessToken) */
 export async function getUserById(id: number | string) {
   const encodedId = encodeURIComponent(String(id));
+  const response = await apiFetch<ApiResponse<DashboardUser> | DashboardUser>(
+    `/api/users/${encodedId}`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (response === null) {
+    throw new Error("User response is empty");
+  }
+
+  if (
+    typeof response === "object" &&
+    response !== null &&
+    "data" in response
+  ) {
+    const wrapped = response as ApiResponse<DashboardUser>;
+    if (!wrapped.data) throw new Error("User data is empty");
+    return wrapped.data;
+  }
+
+  return response as DashboardUser;
+}
+
+/** ✅ Admin only */
+export async function createUserByAdmin(payload: AdminCreateUserPayload) {
+  const json = requireResponse(
+    await apiFetch<ApiResponse<DashboardUser>>("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }),
+    "Create user response is empty",
+  );
+
+  return json.data;
+}
+
+/** ✅ Admin only */
+export async function updateUserByAdmin(
+  id: number | string,
+  payload: AdminUpdateUserPayload,
+) {
+  const encodedId = encodeURIComponent(String(id));
   const json = requireResponse(
     await apiFetch<ApiResponse<DashboardUser>>(`/api/users/${encodedId}`, {
-      method: "GET",
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     }),
-    "User response is empty",
+    "Update user response is empty",
+  );
+
+  return json.data;
+}
+
+/** ✅ Admin only */
+export async function deleteUserByAdmin(id: number | string) {
+  const encodedId = encodeURIComponent(String(id));
+  const json = requireResponse(
+    await apiFetch<ApiResponse<null>>(`/api/users/${encodedId}`, {
+      method: "DELETE",
+    }),
+    "Delete user response is empty",
   );
 
   return json.data;

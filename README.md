@@ -1,281 +1,221 @@
-# E-Commerce Platform - Next.js & Firebase
+# AditiStore Frontend
 
-A modern e-commerce web application built with Next.js 16, Firebase Authentication, and Firestore Database.
+AditiStore is a modern e-commerce frontend built with Next.js App Router. It includes a public shopping experience and an ADMIN dashboard for catalog and order operations.
 
-## 🚀 Tech Stack
+## Overview
 
-- **Frontend Framework:** Next.js 16 (App Router)
-- **Authentication:** Firebase Authentication
-- **Database:** Cloud Firestore
-- **Styling:** Tailwind CSS
-- **State Management:** React Context API
-- **Language:** TypeScript
+This project is the frontend client for the AditiStore backend API. It provides:
 
-## 📁 Project Structure
+- Public storefront (`/`, `/shop`, `/shop/[id]`, `/cart`, `/order`, `/checkout`)
+- User authentication (`/login`, `/register`) with cookie-based session
+- User account features (`/account`, `/wishlist`, order history)
+- ADMIN dashboard (`/dashboard`) with product/category/order/user management
 
-```
-ecommerce-nextjs/
-├── src/
-│   ├── app/
-│   │   ├── (auth)/
-│   │   │   ├── login/
-│   │   │   │   └── page.tsx
-│   │   │   └── register/
-│   │   │       └── page.tsx
-│   │   ├── (shop)/
-│   │   │   ├── products/
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── [id]/
-│   │   │   │       └── page.tsx
-│   │   │   ├── cart/
-│   │   │   │   └── page.tsx
-│   │   │   └── checkout/
-│   │   │       └── page.tsx
-│   │   ├── profile/
-│   │   │   └── page.tsx
-│   │   ├── orders/
-│   │   │   └── page.tsx
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Header.tsx
-│   │   │   ├── Footer.tsx
-│   │   │   └── Navbar.tsx
-│   │   ├── products/
-│   │   │   ├── ProductCard.tsx
-│   │   │   ├── ProductGrid.tsx
-│   │   │   ├── ProductDetail.tsx
-│   │   │   └── ProductFilter.tsx
-│   │   ├── cart/
-│   │   │   ├── CartItem.tsx
-│   │   │   ├── CartSummary.tsx
-│   │   │   └── CartDrawer.tsx
-│   │   ├── auth/
-│   │   │   ├── LoginForm.tsx
-│   │   │   ├── RegisterForm.tsx
-│   │   │   └── ProtectedRoute.tsx
-│   │   └── ui/
-│   │       ├── Button.tsx
-│   │       ├── Input.tsx
-│   │       ├── Modal.tsx
-│   │       └── Loading.tsx
-│   ├── contexts/
-│   │   ├── AuthContext.tsx
-│   │   └── CartContext.tsx
-│   ├── lib/
-│   │   ├── firebase/
-│   │   │   ├── config.ts
-│   │   │   ├── auth.ts
-│   │   │   └── firestore.ts
-│   │   └── utils/
-│   │       ├── formatters.ts
-│   │       └── validators.ts
-│   ├── types/
-│   │   ├── product.ts
-│   │   ├── user.ts
-│   │   ├── cart.ts
-│   │   └── order.ts
-│   └── hooks/
-│       ├── useAuth.ts
-│       ├── useCart.ts
-│       └── useProducts.ts
-├── public/
-│   ├── images/
-│   └── icons/
-├── .env.local
-├── .gitignore
-├── next.config.js
-├── package.json
-├── tailwind.config.ts
-└── tsconfig.json
-```
+## Tech Stack
 
-## 🔥 Firebase Configuration
+- Next.js `16.1.1` (App Router)
+- React `19`
+- TypeScript
+- Tailwind CSS `v4`
+- Radix UI primitives + custom UI components
+- Framer Motion
+- Sonner (toast notifications)
+- Recharts (dashboard analytics)
 
-### Firestore Collections Structure
+## Key Features
 
-```
-users/
-├── {userId}/
-│   ├── email: string
-│   ├── displayName: string
-│   ├── photoURL: string
-│   ├── createdAt: timestamp
-│   └── updatedAt: timestamp
+### Shop Experience
 
-products/
-├── {productId}/
-│   ├── name: string
-│   ├── description: string
-│   ├── price: number
-│   ├── category: string
-│   ├── imageUrl: string
-│   ├── stock: number
-│   ├── createdAt: timestamp
-│   └── featured: boolean
+- Product listing with search, sort, and filters (category, size, color, price)
+- Product detail view with variants and image galleries
+- Featured products, best sellers, and coming soon sections
+- Wishlist and cart persisted in localStorage
 
-orders/
-├── {orderId}/
-│   ├── userId: string
-│   ├── items: array
-│   ├── totalAmount: number
-│   ├── status: string
-│   ├── shippingAddress: object
-│   ├── createdAt: timestamp
-│   └── updatedAt: timestamp
+### Checkout and Orders
 
-cart/
-├── {userId}/
-│   └── items: array
-│       ├── productId: string
-│       ├── quantity: number
-│       └── price: number
+- Checkout flow with backend order creation
+- KHQR payment flow with QR generation + polling verification
+- Order history and order detail retrieval
+
+### Authentication and Access Control
+
+- Login/register flows through backend API
+- Session uses HTTP-only cookie (`credentials: include`)
+- Auto refresh on expired access (handled in API client)
+- Role-based route access: ADMIN users can access `/dashboard`
+
+### Admin Dashboard
+
+- Product table with pagination, search, and advanced filters
+- Product create/edit/delete with variant management and image uploads
+- Product detail modal with image carousel and variant table
+- Category CRUD
+- Order management and status updates
+- User listing and detail fetch
+- Product analytics summary
+
+## Project Structure
+
+```text
+src/
+  app/
+    (shop)/
+      page.tsx
+      shop/page.tsx
+      shop/[id]/page.tsx
+      cart/page.tsx
+      order/page.tsx
+      checkout/page.tsx
+      account/page.tsx
+      wishlist/page.tsx
+      blog/page.tsx
+    (auth)/
+      login/page.tsx
+      register/page.tsx
+    (dashboard)/
+      layout.tsx
+      dashboard/page.tsx
+      dashboard/products/page.tsx
+      dashboard/categories/page.tsx
+      dashboard/orders/page.tsx
+      dashboard/users/page.tsx
+      dashboard/settings/*
+  components/
+    dashboard/
+    shop/
+    layout/
+    ui/
+  context/
+    AuthContext.tsx
+    CartContext.tsx
+    WishlistContext.tsx
+  lib/api/
+    client.ts
+    auth.ts
+    product.ts
+    category.ts
+    orders.ts
+    checkout.ts
+    user.ts
+  types/
 ```
 
-## 🛠️ Installation & Setup
+## API Integration
+
+All API calls use `src/lib/api/client.ts`.
+
+- Base URL comes from `NEXT_PUBLIC_API_BASE_URL`
+- Requests include cookies (`credentials: include`)
+- If request returns `401`, client attempts `POST /api/auth/refresh`
+- If refresh fails, user is redirected to `/login?expired=true`
+
+## Environment Variables
+
+Create `.env.local` in the project root:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+Production example (already used in this repo `.env`):
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://additi-backend.onrender.com
+```
+
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Firebase account
-- Git
+- Node.js 20+
+- npm 10+
+- Running AditiStore backend API
 
-### Steps
-
-1. **Clone the repository**
-
-```bash
-git clone https://github.com/Remy2404/aditi-frontend.git
-cd aditi-frontend
-```
-
-2. **Install dependencies**
+### Install and Run
 
 ```bash
 npm install
-```
-
-3. **Set up Firebase**
-
-	- Create a new Firebase project at [Firebase Console](https://console.firebase.google.com)
-	- Enable Authentication (Email/Password)
-	- Create a Firestore Database
-	- Copy your Firebase configuration
-
-4. **Environment Variables**
-
-Create a `.env.local` file in the root directory:
-
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-```
-
-5. **Run the development server**
-
-```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` to see your application.
+Open `http://localhost:3000`.
 
-## 👥 Team Workflow
-
-### Team Members & Responsibilities
-
-**Member 1 - Authentication & User Management**
-
-- Firebase Authentication integration
-- Login/Register components
-- User profile management
-- Protected routes implementation
-
-**Member 2 - Product Management**
-
-- Product listing and details pages
-- Product filtering and search
-- Firestore product queries
-- Product components
-
-**Member 3 - Cart & Checkout**
-
-- Cart functionality
-- Cart context and state management
-- Checkout process
-- Order creation in Firestore
-
-**Member 4 - UI/UX & Layout**
-
-- Layout components (Header, Footer, Navbar)
-- Reusable UI components
-- Tailwind CSS styling
-- Responsive design
-
-### Git Workflow
+## Scripts
 
 ```bash
-# Create feature branch
-git checkout -b feature/your-feature-name
-
-# After completing work
-git add .
-git commit -m "feat: description of your changes"
-git push origin feature/your-feature-name
-
-# Create Pull Request for review
+npm run dev         # start dev server (webpack)
+npm run dev:turbo   # start dev server (turbopack)
+npm run build       # production build
+npm run start       # run built app
+npm run lint        # eslint
 ```
 
-### Branch Naming Convention
+## Important Routes
 
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `refactor/` - Code refactoring
-- `docs/` - Documentation updates
+### Public
 
-## 📦 Key Features
+- `/` home
+- `/shop` product listing
+- `/shop/[id]` product detail
+- `/cart` cart page
+- `/order` checkout + payment flow
+- `/checkout` alternative checkout flow
+- `/blog`, `/about`, `/contact`, `/feature`
 
-- User authentication (Sign up, Login, Logout)
-- Product browsing and filtering
-- Product detail pages
-- Shopping cart management
-- Checkout process
-- Order history
-- User profile management
-- Responsive design
+### Auth
 
-## 🧪 Development Guidelines
+- `/login`
+- `/register`
 
-### Code Style
+### Protected
 
-- Use TypeScript for type safety
-- Follow React/Next.js best practices
-- Use functional components with hooks
-- Keep components small and reusable
-- Write meaningful commit messages
+- `/account`
+- `/wishlist`
 
-### Component Guidelines
+### Admin
 
-- One component per file
-- Use proper TypeScript interfaces
-- Implement error boundaries
-- Add loading states
-- Handle edge cases
+- `/dashboard`
+- `/dashboard/products`
+- `/dashboard/categories`
+- `/dashboard/orders`
+- `/dashboard/users`
+- `/dashboard/settings/*`
 
-## 📚 Useful Resources
+`/dashboard` requires `ADMIN` role. Non-admin users are redirected to `/unauthorized`.
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [React Context API](https://react.dev/reference/react/useContext)
+## Image and Icon Notes
 
-## 📄 License
+- App icons are configured in `src/app/layout.tsx` (`/icon.svg`, `/icon.png`, `/apple-icon.png`)
+- Public asset names are case-sensitive in deployment (Linux). Example: `/Aditilogo.png` must match actual filename exactly
+- Next/Image remote domains are configured in `next.config.ts`
 
-MIT License - feel free to use this project for learning and development.
+## Deployment
 
----
-memeber is 3 member include struture folder and impoved  (See <attachments> above for file contents. You may not need to search or read the file again.)
+This app is deployed on Vercel.
+
+Before deploying:
+
+1. Set `NEXT_PUBLIC_API_BASE_URL` in Vercel Environment Variables
+2. Ensure backend CORS and cookie settings allow your frontend domain
+3. Verify public assets and icon files exist with exact casing
+
+## Troubleshooting
+
+### Logo/Icon not showing in production
+
+- Check path casing (`/Aditilogo.png` vs `/aditilogo.png`)
+- Hard refresh browser cache
+- Confirm metadata icon paths in `src/app/layout.tsx`
+
+### Unauthorized dashboard access
+
+- Confirm logged-in user has `ADMIN` role from `/api/auth/me`
+
+### API requests failing
+
+- Confirm `NEXT_PUBLIC_API_BASE_URL` is set correctly
+- Check backend availability and CORS settings
+
+## License
+
+Internal project for AditiStore team.
