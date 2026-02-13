@@ -101,7 +101,7 @@ export default function Navbar() {
           >
             <div className="relative h-20 w-20 sm:h-25 sm:w-25">
               <Image
-                src="/aditilogo.png"
+                src="/Aditilogo.png"
                 alt="Aduti Logo"
                 fill
                 className="object-contain"
