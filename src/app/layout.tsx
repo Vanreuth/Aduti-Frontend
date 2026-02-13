@@ -10,8 +10,16 @@ import { WishlistProvider } from "@/context/WishlistContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MyStore - Your Online Store",
+  title: "AditiStore - Online Store for Quality Products",
   description: "Quality products at great prices",
+  icons: {
+    icon: [
+      { url: "/icon.svg?v=2", type: "image/svg+xml" },
+      { url: "/icon.png?v=2", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/icon.png?v=2",
+    apple: "/apple-icon.png?v=2",
+  },
 };
 
 export default function RootLayout({
