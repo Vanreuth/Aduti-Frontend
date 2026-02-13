@@ -81,6 +81,16 @@ export type GetUsersParams = {
   search?: string;
 };
 
+function requireResponse<T>(
+  response: ApiResponse<T> | null,
+  message: string,
+): ApiResponse<T> {
+  if (response === null) {
+    throw new Error(message);
+  }
+  return response;
+}
+
 /** ✅ Cookie auth (no accessToken) */
 export async function getUsers(params: GetUsersParams = {}) {
   const sp = new URLSearchParams();
@@ -90,9 +100,12 @@ export async function getUsers(params: GetUsersParams = {}) {
 
   const query = sp.toString();
   const endpoint = query ? `/api/users?${query}` : "/api/users";
-  const json = await apiFetch<ApiResponse<UsersPageData>>(endpoint, {
-    method: "GET",
-  });
+  const json = requireResponse(
+    await apiFetch<ApiResponse<UsersPageData>>(endpoint, {
+      method: "GET",
+    }),
+    "Users response is empty",
+  );
 
   return json.data;
 }
@@ -100,9 +113,11 @@ export async function getUsers(params: GetUsersParams = {}) {
 /** ✅ Cookie auth (no accessToken) */
 export async function getUserById(id: number | string) {
   const encodedId = encodeURIComponent(String(id));
-  const json = await apiFetch<ApiResponse<DashboardUser>>(
-    `/api/users/${encodedId}`,
-    { method: "GET" },
+  const json = requireResponse(
+    await apiFetch<ApiResponse<DashboardUser>>(`/api/users/${encodedId}`, {
+      method: "GET",
+    }),
+    "User response is empty",
   );
 
   return json.data;

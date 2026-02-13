@@ -75,7 +75,7 @@ export function FilterSidebar({
   colorOptions?: CategoryOption[];
   colorValue?: string;
   priceRange: number;
-  priceRanges?: PriceRange[];
+  priceRanges?: readonly PriceRange[];
   onCategoryChange?: (slug: string) => void;
   onSizeChange?: (value: string) => void;
   onColorChange?: (value: string) => void;

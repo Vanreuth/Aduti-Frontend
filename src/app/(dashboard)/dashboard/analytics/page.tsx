@@ -1,225 +1,380 @@
 "use client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  BarChart3,
+  ChartNoAxesCombined,
+  DollarSign,
+  RefreshCw,
+  ShoppingBag,
+  Tags,
+  TrendingUp,
+} from "lucide-react";
+import { getProductDashboardAnalytics } from "@/lib/api/product";
+import type { ProductDashboardData } from "@/types/product";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  DollarSign,
-  Activity,
-  BarChart3,
-  Download,
-  Filter,
-  Calendar,
-} from "lucide-react";
-import { useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-const metrics = [
-  {
-    title: "Total Revenue",
-    value: "$45,231.89",
-    change: "+20.1%",
-    trend: "up",
-    icon: DollarSign,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
-  },
-  {
-    title: "Active Users",
-    value: "2,350",
-    change: "+180.1%",
-    trend: "up",
-    icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    title: "Sales",
-    value: "12,234",
-    change: "+19%",
-    trend: "up",
-    icon: Activity,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    title: "Conversion Rate",
-    value: "2.4%",
-    change: "-4.3%",
-    trend: "down",
-    icon: TrendingDown,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
-  },
-];
+const money = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function formatStatus(status?: string) {
+  if (!status) return "Unknown";
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getStatusVariant(
+  status?: string,
+): "default" | "secondary" | "outline" | "destructive" {
+  if (status === "ACTIVE") return "default";
+  if (status === "COMING_SOON") return "secondary";
+  if (status === "OUT_OF_STOCK" || status === "DISCONTINUED") return "destructive";
+  return "outline";
+}
 
 export default function AnalyticsPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<ProductDashboardData | null>(null);
+
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const analytics = await getProductDashboardAnalytics();
+      setData(analytics);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load analytics data";
+      setError(message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAnalytics();
+  }, [loadAnalytics]);
+
+  const categoryMaxValue = useMemo(() => {
+    if (!data?.categoryStats?.length) return 1;
+    return Math.max(1, ...data.categoryStats.map((c) => c.totalValue ?? 0));
+  }, [data?.categoryStats]);
+
+  const activeRate = useMemo(() => {
+    if (!data?.productStats.totalProducts) return 0;
+    return Math.round(
+      (data.productStats.activeProducts / data.productStats.totalProducts) * 100,
+    );
+  }, [data?.productStats]);
+
+  const sortedCategoryStats = useMemo(() => {
+    return [...(data?.categoryStats ?? [])].sort(
+      (a, b) => (b.totalValue ?? 0) - (a.totalValue ?? 0),
+    );
+  }, [data?.categoryStats]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
-          <p className="text-muted-foreground">
-            View detailed analytics and insights about your business
-            performance.
-          </p>
+          <p className="text-muted-foreground">Live product analytics.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Last 30 days
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => void loadAnalytics()} disabled={loading}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Refresh Analytics
+        </Button>
       </div>
 
-      {/* Metrics Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
-          const TrendIcon = metric.trend === "up" ? TrendingUp : TrendingDown;
+      {error ? (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-destructive">{error}</p>
+            <Button size="sm" variant="outline" onClick={() => void loadAnalytics()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
-          return (
-            <Card
-              key={metric.title}
-              className="hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {metric.title}
-                </CardTitle>
-                <div className={`p-2 rounded-lg ${metric.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${metric.color}`} />
-                </div>
+      {loading ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <Card key={`analytics-skeleton-${idx}`}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-3 w-28" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-44" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <Skeleton key={`category-skeleton-${idx}`} className="h-12 w-full" />
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-44" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metric.value}</div>
-                <div className="flex items-center text-xs">
-                  <TrendIcon
-                    className={cn(
-                      "mr-1 h-3 w-3",
-                      metric.trend === "up" ? "text-green-600" : "text-red-600",
-                    )}
-                  />
-                  <span
-                    className={
-                      metric.trend === "up" ? "text-green-600" : "text-red-600"
-                    }
-                  >
-                    {metric.change}
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    from last month
-                  </span>
+                <Skeleton className="h-52 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      ) : data ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Catalog Value</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{money.format(data.priceStats.totalValue)}</p>
+                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Across {data.productStats.totalProducts} products
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Average Price</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{money.format(data.priceStats.avgPrice)}</p>
+                  <TrendingUp className="h-5 w-5 text-emerald-600" />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Min {money.format(data.priceStats.minPrice)} • Max{" "}
+                  {money.format(data.priceStats.maxPrice)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Active Ratio</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{activeRate}%</p>
+                  <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {data.productStats.activeProducts} active / {data.productStats.totalProducts} total
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Tracked Categories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{data.productStats.totalCategories}</p>
+                  <Tags className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Ranked by product value</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Card className="xl:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Category Value Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {sortedCategoryStats.map((item) => {
+                  const width = Math.max(
+                    10,
+                    Math.round(((item.totalValue ?? 0) / categoryMaxValue) * 100),
+                  );
+                  return (
+                    <div key={item.categorySlug} className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{item.categoryName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.productCount} products • Avg {money.format(item.avgPrice ?? 0)}
+                          </p>
+                        </div>
+                        <p className="font-semibold">{money.format(item.totalValue ?? 0)}</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted">
+                        <div
+                          className="h-2 rounded-full bg-primary transition-all"
+                          style={{ width: `${width}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ChartNoAxesCombined className="h-5 w-5" />
+                  Product Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Active Products</p>
+                  <p className="text-3xl font-bold">{data.productStats.activeProducts}</p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Inactive Products</p>
+                  <p className="text-3xl font-bold">{data.productStats.inactiveProducts}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Active Ratio</span>
+                    <span>{activeRate}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-emerald-600 transition-all"
+                      style={{ width: `${Math.max(4, activeRate)}%` }}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          </div>
 
-      {/* Analytics Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="revenue">Revenue</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Overview Analytics
-                    </CardTitle>
-                    <Badge variant="secondary">Live Data</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-75 flex items-center justify-center bg-linear-to-br from-blue-50 to-purple-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Chart Integration Ready
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Connect your analytics provider
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="revenue" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Revenue Trends
-                    </CardTitle>
-                    <Badge variant="secondary">Updated</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-75 flex items-center justify-center bg-linear-to-br from-emerald-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Revenue Analytics
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Integrate with your billing system
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="users" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      User Analytics
-                    </CardTitle>
-                    <Badge variant="secondary">Real-time</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-75 flex items-center justify-center bg-linear-to-br from-purple-50 to-pink-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-muted-foreground">
-                        User Behavior Analytics
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Connect user tracking service
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Products</CardTitle>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <Table className="min-w-[540px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.recentProducts.slice(0, 8).map((item) => (
+                      <TableRow key={`recent-${item.id}`}>
+                        <TableCell>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.category?.name ?? "Uncategorized"}
+                          </div>
+                        </TableCell>
+                        <TableCell>{money.format(item.price ?? 0)}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(item.status)}>
+                            {formatStatus(item.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDateTime(item.createdAt)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Products</CardTitle>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <Table className="min-w-[540px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Sales</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Flags</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.topProducts.slice(0, 8).map((item) => (
+                      <TableRow key={`top-${item.id}`}>
+                        <TableCell>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.category?.name ?? "Uncategorized"}
+                          </div>
+                        </TableCell>
+                        <TableCell>{item.salesCount ?? 0}</TableCell>
+                        <TableCell>{money.format(item.price ?? 0)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {item.isFeatured ? <Badge variant="secondary">Featured</Badge> : null}
+                            <Badge variant={item.isActive ? "default" : "outline"}>
+                              {item.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

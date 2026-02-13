@@ -1,4 +1,4 @@
-import type { Product } from "@/types/api";
+import type { Product } from "@/types/product";
 
 export function getPrimaryProductImage(product: Product): string | null {
   // Prefer first variant image if exists

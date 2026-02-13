@@ -28,7 +28,13 @@ function getVariantImages(variants?: ProductVariant[]): ProductImage[] {
 
 function getPrimaryImage(product: Product) {
   const images = getVariantImages(product.variants);
-  return images[0]?.imageUrl ?? PLACEHOLDER_IMAGE;
+  return (
+    images[0]?.imageUrl ??
+    (typeof product.thumbnailImage === "string" &&
+    product.thumbnailImage.trim() !== ""
+      ? product.thumbnailImage
+      : PLACEHOLDER_IMAGE)
+  );
 }
 
 function getUniqueList(values: Array<string | null | undefined>) {
