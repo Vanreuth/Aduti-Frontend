@@ -280,6 +280,34 @@ function getVariantTabValue(index: number) {
   return `variant-${index}`;
 }
 
+function buildVariantFilterOptions(
+  products: ProductRow[],
+  field: "size" | "color",
+  selectedValue: string,
+) {
+  const values = new Map<string, string>();
+
+  for (const row of products) {
+    for (const variant of row.product.variants ?? []) {
+      const raw = field === "size" ? variant.size : variant.color;
+      const normalized = raw?.trim();
+      if (!normalized) continue;
+      const key = normalized.toLowerCase();
+      if (!values.has(key)) values.set(key, normalized);
+    }
+  }
+
+  const selectedNormalized = selectedValue?.trim();
+  if (selectedNormalized && selectedNormalized !== "All") {
+    const selectedKey = selectedNormalized.toLowerCase();
+    if (!values.has(selectedKey)) values.set(selectedKey, selectedNormalized);
+  }
+
+  return Array.from(values.values())
+    .sort((a, b) => a.localeCompare(b))
+    .map((value) => ({ label: value, value }));
+}
+
 export default function ProductDataTable() {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -287,8 +315,8 @@ export default function ProductDataTable() {
   const [filters, setFilters] = useState<Record<string, string>>({
     category: "All",
     status: "All",
-    sizeValue: "",
-    color: "",
+    sizeValue: "All",
+    color: "All",
     minPrice: "",
     maxPrice: "",
   });
@@ -349,10 +377,20 @@ export default function ProductDataTable() {
 
   const categoryFilter = filters.category ?? "All";
   const statusFilter = (filters.status ?? "All") as ProductLifecycleStatus | "All";
-  const sizeValueFilter = filters.sizeValue ?? "";
-  const colorFilter = filters.color ?? "";
+  const sizeValueFilter = filters.sizeValue ?? "All";
+  const colorFilter = filters.color ?? "All";
   const minPriceFilter = filters.minPrice ?? "";
   const maxPriceFilter = filters.maxPrice ?? "";
+
+  const sizeFilterOptions = useMemo(
+    () => buildVariantFilterOptions(products, "size", sizeValueFilter),
+    [products, sizeValueFilter],
+  );
+
+  const colorFilterOptions = useMemo(
+    () => buildVariantFilterOptions(products, "color", colorFilter),
+    [products, colorFilter],
+  );
 
   const activeFiltersCount = useMemo(() => {
     const baseCount = Object.values(filters).filter(
@@ -382,14 +420,14 @@ export default function ProductDataTable() {
       {
         key: "sizeValue",
         label: "Size",
-        type: "text",
-        placeholder: "e.g. L",
+        type: "select",
+        options: sizeFilterOptions,
       },
       {
         key: "color",
         label: "Color",
-        type: "text",
-        placeholder: "e.g. Blue",
+        type: "select",
+        options: colorFilterOptions,
       },
       {
         key: "minPrice",
@@ -409,7 +447,7 @@ export default function ProductDataTable() {
         type: "daterange",
       },
     ],
-    [categoryOptions],
+    [categoryOptions, sizeFilterOptions, colorFilterOptions],
   );
 
   const handleFilterChange = (key: string, value: string) => {
@@ -420,8 +458,8 @@ export default function ProductDataTable() {
     setFilters({
       category: "All",
       status: "All",
-      sizeValue: "",
-      color: "",
+      sizeValue: "All",
+      color: "All",
       minPrice: "",
       maxPrice: "",
     });
@@ -552,8 +590,8 @@ export default function ProductDataTable() {
           direction: "DESC",
           search: debouncedSearch || undefined,
           category: categoryFilter !== "All" ? categoryFilter : undefined,
-          sizeValue: sizeValueFilter || undefined,
-          color: colorFilter || undefined,
+          sizeValue: sizeValueFilter !== "All" ? sizeValueFilter : undefined,
+          color: colorFilter !== "All" ? colorFilter : undefined,
           minPrice: toOptionalNumber(minPriceFilter),
           maxPrice: toOptionalNumber(maxPriceFilter),
           startDate: dateRange.from || undefined,
